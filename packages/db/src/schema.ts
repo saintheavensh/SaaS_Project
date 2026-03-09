@@ -53,6 +53,19 @@ export const rolePermissions = pgTable('role_permissions', {
 });
 
 /**
+ * User Roles join table
+ */
+export const userRoles = pgTable('user_roles', {
+    userId: uuid('user_id').references(() => users.id).notNull(),
+    roleId: uuid('role_id').references(() => roles.id).notNull(),
+}, (table) => {
+    return {
+        pk: primaryKey({ columns: [table.userId, table.roleId] }),
+        userIdIdx: index('user_roles_user_idx').on(table.userId),
+    };
+});
+
+/**
  * Users table - Scoped by tenant_id
  */
 export const users = pgTable('users', {
