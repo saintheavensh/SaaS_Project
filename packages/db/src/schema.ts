@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, text, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, index, primaryKey } from 'drizzle-orm/pg-core';
 
 /**
  * Tenants table - Root of multi-tenancy
@@ -36,6 +36,19 @@ export const roles = pgTable('roles', {
         nameTenantIdx: index('roles_name_tenant_idx').on(table.tenantId, table.name),
         // unique(table.tenantId, table.name) could also be used if drizzle version supports it well, 
         // but for now, we'll enforce unique logic in the service layer or via a unique index.
+    };
+});
+
+/**
+ * Role Permissions join table
+ */
+export const rolePermissions = pgTable('role_permissions', {
+    roleId: uuid('role_id').references(() => roles.id).notNull(),
+    permissionId: uuid('permission_id').references(() => permissions.id).notNull(),
+}, (table) => {
+    return {
+        pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
+        roleIdx: index('role_permissions_role_idx').on(table.roleId),
     };
 });
 
