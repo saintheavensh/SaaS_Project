@@ -5,8 +5,9 @@ import { pgTable, uuid, varchar, timestamp, text, index } from 'drizzle-orm/pg-c
  */
 export const tenants = pgTable('tenants', {
     id: uuid('id').defaultRandom().primaryKey(),
-    name: varchar('name', { length: 255 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull().unique(),
     slug: varchar('slug', { length: 255 }).notNull().unique(),
+    description: text('description'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
