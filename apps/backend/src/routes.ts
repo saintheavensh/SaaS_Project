@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { authRouter } from './core/auth/routes.js';
-import { tenantRouter } from './core/tenant/routes.js';
+import { tenantRouter } from './modules/tenants/routes.js';
 import { userRouter } from './modules/users/routes.js';
 import { roleRouter } from './modules/roles/routes.js';
 import { authMiddleware } from './core/middlewares/authMiddleware.js';
