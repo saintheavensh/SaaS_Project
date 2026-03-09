@@ -5,11 +5,25 @@ import { env } from 'hono/adapter';
 import 'dotenv/config';
 import router from './routes.js';
 
+import { auditMiddleware } from './core/middlewares/auditMiddleware.js';
+import { authMiddleware } from './core/middlewares/authMiddleware.js';
+import { tenantContextMiddleware } from './core/middlewares/tenantContextMiddleware.js';
+
 const app = new Hono();
 
 // Middleware
 app.use('*', logger());
-app.use('*', cors());
+app.use(
+    '*',
+    cors({
+        origin: ['http://localhost:3000', 'http://localhost:3001'],
+        allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
+        exposeHeaders: ['Content-Length', 'Set-Cookie'],
+        credentials: true,
+    })
+);
+app.use('*', auditMiddleware);
 
 // Base Route
 app.get('/', (c) => {
@@ -27,11 +41,15 @@ app.route('/api/v1', router);
 // In a real implementation, we would use swagger-jsdoc and swagger-ui-express here.
 // Since this is Hono, we might use @hono/zod-openapi or similar for better DX.
 
-const port = process.env.PORT || 4000;
+import { serve } from '@hono/node-server';
+
+const port = Number(process.env.PORT) || 4000;
 
 console.log(`Server is running on port ${port}`);
 
-export default {
-    port,
+serve({
     fetch: app.fetch,
-};
+    port,
+});
+
+export default app;

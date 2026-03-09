@@ -1,1 +1,5 @@
 node_modules
+legacy
+.env
+dist
+.turbo
