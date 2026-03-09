@@ -3,3 +3,14 @@ legacy
 .env
 dist
 .turbo
+.next
+build
+cache
+coverage
+dist
+.DS_Store
+*.log
+*.tsbuildinfo
+.eslintcache
+.prettiercache
+.next
