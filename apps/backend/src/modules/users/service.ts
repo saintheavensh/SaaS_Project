@@ -10,7 +10,7 @@ type RoleTable = typeof roles;
 /**
  * Map database user and role to UserResponse
  */
-const mapToUserResponse = (user: any, roleName: string): UserResponse => ({
+const mapToUserResponse = (user: InferSelectModel<UserTable>, roleName: string): UserResponse => ({
     id: user.id,
     tenantId: user.tenantId,
     email: user.email,
@@ -122,7 +122,7 @@ export const updateUserService = async (tenantId: string, id: string, input: Upd
         throw new Error('User not found');
     }
 
-    const updateData: any = {
+    const updateData: Partial<InferSelectModel<UserTable>> & { updatedAt: Date } = {
         ...(input.name !== undefined ? { name: input.name } : {}),
         updatedAt: new Date(),
     };
