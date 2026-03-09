@@ -15,22 +15,28 @@ async function seed() {
     const db = drizzle(client, { schema });
 
     try {
-        // 1. Roles
-        const roleNames = ['super-admin', 'admin', 'user'];
-        for (const name of roleNames) {
-            await db.insert(schema.roles).values({ name }).onConflictDoNothing();
-        }
-        console.log('✅ Roles initialized');
-
-        // 2. Tenants
+        // 1. Tenants
         await db.insert(schema.tenants).values({ name: 'System', slug: 'system' }).onConflictDoNothing();
         await db.insert(schema.tenants).values({ name: 'Tenant 1', slug: 't1' }).onConflictDoNothing();
         console.log('✅ Tenants initialized');
 
+        // Fetch System Tenant
+        const [systemTenant] = await db.select().from(schema.tenants).where(eq(schema.tenants.slug, 'system')).limit(1);
+
+        // 2. Roles (Associated with System Tenant)
+        const roleNames = ['super-admin', 'admin', 'user'];
+        for (const name of roleNames) {
+            await db.insert(schema.roles).values({
+                name,
+                tenantId: systemTenant.id,
+                description: `Default system ${name} role`
+            }).onConflictDoNothing();
+        }
+        console.log('✅ Roles initialized');
+
         // Fetch IDs
         const [superAdminRole] = await db.select().from(schema.roles).where(eq(schema.roles.name, 'super-admin')).limit(1);
         const [userRole] = await db.select().from(schema.roles).where(eq(schema.roles.name, 'user')).limit(1);
-        const [systemTenant] = await db.select().from(schema.tenants).where(eq(schema.tenants.slug, 'system')).limit(1);
         const [tenantT1] = await db.select().from(schema.tenants).where(eq(schema.tenants.slug, 't1')).limit(1);
 
         const hashedPw = '$2b$10$dfKhozMHc80A7bF9drmUxOuZbOUYNw2VAuSpmGW6c15D24tU3Jyau';

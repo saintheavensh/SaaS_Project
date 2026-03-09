@@ -12,13 +12,22 @@ export const tenants = pgTable('tenants', {
 });
 
 /**
- * Roles table
+ * Roles table - Scoped by tenant_id
  */
 export const roles = pgTable('roles', {
     id: uuid('id').defaultRandom().primaryKey(),
-    name: varchar('name', { length: 50 }).notNull().unique(),
+    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
+    name: varchar('name', { length: 50 }).notNull(),
+    description: text('description'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+    return {
+        tenantIdx: index('roles_tenant_idx').on(table.tenantId),
+        nameTenantIdx: index('roles_name_tenant_idx').on(table.tenantId, table.name),
+        // unique(table.tenantId, table.name) could also be used if drizzle version supports it well, 
+        // but for now, we'll enforce unique logic in the service layer or via a unique index.
+    };
 });
 
 /**

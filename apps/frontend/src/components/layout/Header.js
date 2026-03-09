@@ -1,0 +1,9 @@
+'use client';
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useAuth } from '@/context/AuthContext';
+import { Bell, Search, User as UserIcon } from 'lucide-react';
+const Header = () => {
+    const { user } = useAuth();
+    return (_jsxs("header", { className: "h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shadow-sm sticky top-0 z-10", children: [_jsxs("div", { className: "relative w-96", children: [_jsx(Search, { className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" }), _jsx("input", { type: "text", placeholder: "Search inventory, sales, products...", className: "w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" })] }), _jsxs("div", { className: "flex items-center space-x-4", children: [_jsxs("button", { className: "p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors relative", children: [_jsx(Bell, { className: "w-5 h-5" }), _jsx("span", { className: "absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" })] }), _jsx("div", { className: "h-8 w-px bg-slate-200 mx-2" }), _jsxs("div", { className: "flex items-center space-x-3", children: [_jsxs("div", { className: "text-right hidden sm:block", children: [_jsx("p", { className: "text-sm font-semibold text-slate-900", children: (user === null || user === void 0 ? void 0 : user.name) || 'Guest' }), _jsx("p", { className: "text-xs text-slate-500 capitalize", children: (user === null || user === void 0 ? void 0 : user.role) || 'Guest' })] }), _jsx("div", { className: "w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border border-blue-200 shadow-sm", children: _jsx(UserIcon, { className: "w-5 h-5" }) })] })] })] }));
+};
+export default Header;
