@@ -4,6 +4,7 @@ import { tenantRouter } from './modules/tenants/routes.js';
 import { userRouter } from './modules/users/routes.js';
 import { roleRouter } from './modules/roles/routes.js';
 import { permissionRouter } from './modules/permissions/routes.js';
+import { rolePermissionRouter } from './modules/role-permissions/index.js';
 import { authMiddleware } from './core/middlewares/authMiddleware.js';
 import { tenantContextMiddleware } from './core/middlewares/tenantContextMiddleware.js';
 
@@ -24,6 +25,7 @@ router.route('/users', userRouter);
 
 // Role Module
 router.route('/roles', roleRouter);
+router.route('/roles', rolePermissionRouter);
 
 // Permission Module
 router.route('/permissions', permissionRouter);
