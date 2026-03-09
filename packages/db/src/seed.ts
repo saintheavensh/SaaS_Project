@@ -34,6 +34,20 @@ async function seed() {
         }
         console.log('✅ Roles initialized');
 
+        // 3. Permissions (Global)
+        const permissionNames = [
+            'user.read', 'user.create', 'user.update', 'user.delete',
+            'role.read', 'role.create', 'role.update', 'role.delete',
+            'tenant.read', 'tenant.update'
+        ];
+        for (const name of permissionNames) {
+            await db.insert(schema.permissions).values({
+                name,
+                description: `Global permission to ${name.replace('.', ' ')}`
+            }).onConflictDoNothing();
+        }
+        console.log('✅ Permissions initialized');
+
         // Fetch IDs
         const [superAdminRole] = await db.select().from(schema.roles).where(eq(schema.roles.name, 'super-admin')).limit(1);
         const [userRole] = await db.select().from(schema.roles).where(eq(schema.roles.name, 'user')).limit(1);
