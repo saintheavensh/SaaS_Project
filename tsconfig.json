@@ -1,0 +1,23 @@
+{
+    "files": [],
+    "references": [
+        {
+            "path": "packages/types"
+        },
+        {
+            "path": "packages/db"
+        },
+        {
+            "path": "packages/api-client"
+        },
+        {
+            "path": "apps/backend"
+        },
+        {
+            "path": "apps/frontend"
+        },
+        {
+            "path": "apps/admin"
+        }
+    ]
+}

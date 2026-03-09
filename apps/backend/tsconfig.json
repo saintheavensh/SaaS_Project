@@ -19,8 +19,17 @@
         "exactOptionalPropertyTypes": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "composite": true
     },
+    "references": [
+        {
+            "path": "../../packages/db"
+        },
+        {
+            "path": "../../packages/types"
+        }
+    ],
     "include": [
         "src/**/*"
     ]

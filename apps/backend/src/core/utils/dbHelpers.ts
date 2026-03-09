@@ -30,10 +30,15 @@ export const seedTestData = async (): Promise<{ tenantId: string; userId: string
         slug: 'test-tenant-' + Date.now(),
     }).returning();
 
-    // 2. Create a test role
+    // 2. Create a test role scoped to the tenant
     const [role] = await db.insert(roles).values({
+        tenantId: tenant.id,
         name: 'admin',
-    }).onConflictDoUpdate({ target: roles.name, set: { name: 'admin' } }).returning();
+        description: 'Test Admin Role',
+    }).onConflictDoUpdate({
+        target: [roles.tenantId, roles.name],
+        set: { updatedAt: new Date() }
+    }).returning();
 
     // 3. Create a test user
     const [user] = await db.insert(users).values({
