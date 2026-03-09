@@ -1,0 +1,72 @@
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import * as schema from './schema.js';
+import { eq } from 'drizzle-orm';
+
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '../../apps/backend/.env' });
+
+const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/postgres';
+
+async function seed() {
+    console.log('🌱 Seeding database...');
+
+    const client = postgres(connectionString);
+    const db = drizzle(client, { schema });
+
+    try {
+        // 1. Roles
+        const roleNames = ['super-admin', 'admin', 'user'];
+        for (const name of roleNames) {
+            await db.insert(schema.roles).values({ name }).onConflictDoNothing();
+        }
+        console.log('✅ Roles initialized');
+
+        // 2. Tenants
+        await db.insert(schema.tenants).values({ name: 'System', slug: 'system' }).onConflictDoNothing();
+        await db.insert(schema.tenants).values({ name: 'Tenant 1', slug: 't1' }).onConflictDoNothing();
+        console.log('✅ Tenants initialized');
+
+        // Fetch IDs
+        const [superAdminRole] = await db.select().from(schema.roles).where(eq(schema.roles.name, 'super-admin')).limit(1);
+        const [userRole] = await db.select().from(schema.roles).where(eq(schema.roles.name, 'user')).limit(1);
+        const [systemTenant] = await db.select().from(schema.tenants).where(eq(schema.tenants.slug, 'system')).limit(1);
+        const [tenantT1] = await db.select().from(schema.tenants).where(eq(schema.tenants.slug, 't1')).limit(1);
+
+        const hashedPw = '$2b$10$dfKhozMHc80A7bF9drmUxOuZbOUYNw2VAuSpmGW6c15D24tU3Jyau';
+
+        // 3. Super Admin User
+        await db.insert(schema.users).values({
+            tenantId: systemTenant.id,
+            email: 'admin@example.com',
+            name: 'System Admin',
+            passwordHash: hashedPw,
+            roleId: superAdminRole.id,
+        }).onConflictDoUpdate({
+            target: schema.users.email,
+            set: { passwordHash: hashedPw, name: 'System Admin' }
+        });
+        console.log('✅ Super Admin user initialized');
+
+        // 4. Regular User
+        await db.insert(schema.users).values({
+            tenantId: tenantT1.id,
+            email: 'user@example.com',
+            name: 'Regular User',
+            passwordHash: hashedPw,
+            roleId: userRole.id,
+        }).onConflictDoUpdate({
+            target: schema.users.email,
+            set: { passwordHash: hashedPw, name: 'Regular User' }
+        });
+        console.log('✅ Regular User initialized');
+
+        console.log('✨ Seeding completed successfully!');
+    } catch (error) {
+        console.error('❌ Seeding failed:', error);
+    } finally {
+        await client.end();
+    }
+}
+
+seed();
