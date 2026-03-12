@@ -2,6 +2,11 @@ import { SQL, eq, and } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
 
 /**
+ * ARCHITECTURE GUARD (STRICT):
+ * 1. Repositories are the ONLY place allowed to access the database.
+ * 2. Services must NEVER import `db` directly.
+ * 3. Tenant filtering MUST be enforced at the repository layer.
+ * 
  * Generates an SQL where clause for tenant filtering.
  * Enforces that a query is scoped to a specific tenant ID.
  *

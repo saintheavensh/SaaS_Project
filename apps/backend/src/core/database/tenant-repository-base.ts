@@ -8,6 +8,11 @@ import { db } from '../db.js';
 export type Database = typeof db;
 
 /**
+ * ARCHITECTURE GUARD (STRICT):
+ * 1. Repositories are the ONLY place allowed to access the database.
+ * 2. Services must NEVER import `db` directly.
+ * 3. Tenant filtering MUST be enforced at the repository layer.
+ * 
  * Base abstract class for repositories representing tenant-isolated database access.
  * Enforces that a tenantId is always provided when constructing a repository instance.
  */
