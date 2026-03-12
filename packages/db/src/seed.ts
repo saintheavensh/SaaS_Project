@@ -36,9 +36,13 @@ async function seed() {
 
         // 3. Permissions (Global)
         const permissionNames = [
+            // Core System Permissions (Module: user, role, permission)
             'user.read', 'user.create', 'user.update', 'user.delete',
             'role.read', 'role.create', 'role.update', 'role.delete',
-            'tenant.read', 'tenant.update'
+            'permission.read', 'permission.create', 'permission.update', 'permission.delete',
+            
+            // Tenant Permissions
+            'tenant.read', 'tenant.create', 'tenant.update', 'tenant.delete'
         ];
         for (const name of permissionNames) {
             await db.insert(schema.permissions).values({
