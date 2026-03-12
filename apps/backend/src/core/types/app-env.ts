@@ -3,7 +3,7 @@ export type AppEnv = {
         userId: string;
         tenantId: string;
         role: string;
-        permissions?: string[];
+        permissions?: import('../auth/permission.types.js').Permission[];
         jwtPayload?: Record<string, unknown>; // To hold decoded JWT safely
     };
 };
