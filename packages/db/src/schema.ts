@@ -84,9 +84,41 @@ export const users = pgTable('users', {
     };
 });
 
-// TODO: Add more tables or columns for:
-// - products (Add index("products_tenant_idx").on(products.tenantId))
-// - variants
-// - batches (Add index("batches_tenant_idx").on(batches.tenantId))
-// - suppliers
-// - inventory_movements
+/**
+ * Products table - Scoped by tenant_id
+ */
+export const products = pgTable('products', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description'),
+    stock: text('stock').default('0').notNull(), // Snapshot stock
+    categoryId: uuid('category_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+    return {
+        tenantIdx: index('products_tenant_idx').on(table.tenantId),
+        nameTenantIdx: index('products_name_tenant_idx').on(table.tenantId, table.name),
+    };
+});
+
+/**
+ * Product Batches table - Scoped by tenant_id
+ */
+export const batches = pgTable('batches', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
+    productId: uuid('product_id').references(() => products.id).notNull(),
+    buyPrice: text('buy_price').notNull(),
+    sellPrice: text('sell_price').notNull(),
+    initialStock: text('initial_stock').notNull(),
+    currentStock: text('current_stock').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+    return {
+        tenantIdx: index('batches_tenant_idx').on(table.tenantId),
+        productTenantIdx: index('batches_product_tenant_idx').on(table.tenantId, table.productId),
+    };
+});
