@@ -18,13 +18,19 @@ export const requirePermission = (permissionName: string) => {
         const tenantId = c.get('tenantId') as string | undefined;
 
         if (!userId || !tenantId) {
-            return errorResponse(c, 'Unauthorized', 'Authentication required', 401);
+            return c.json({
+                error: 'UNAUTHORIZED',
+                message: 'Authentication required'
+            }, 401);
         }
 
         const userPermissions = await resolveUserPermissions(userId, tenantId, c);
 
         if (!userPermissions.includes(permissionName)) {
-            return errorResponse(c, 'Forbidden', 'Missing required permission', 403);
+            return c.json({
+                error: 'FORBIDDEN',
+                message: 'You do not have permission to perform this action'
+            }, 403);
         }
 
         await next();
