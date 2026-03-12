@@ -34,7 +34,13 @@ export class UsersRepository extends TenantRepository {
                 role: roles,
             })
             .from(users)
-            .leftJoin(roles, eq(users.roleId, roles.id))
+            .leftJoin(
+                roles,
+                and(
+                    eq(users.roleId, roles.id),
+                    this.tenantWhere(roles.tenantId)
+                )
+            )
             .where(this.tenantWhere(users.tenantId));
 
         return (results as { user: InferSelectModel<UserTable>; role: InferSelectModel<RoleTable> | null }[]).map((r) =>
@@ -49,7 +55,13 @@ export class UsersRepository extends TenantRepository {
                 role: roles,
             })
             .from(users)
-            .leftJoin(roles, eq(users.roleId, roles.id))
+            .leftJoin(
+                roles,
+                and(
+                    eq(users.roleId, roles.id),
+                    this.tenantWhere(roles.tenantId)
+                )
+            )
             .where(
                 and(
                     this.tenantWhere(users.tenantId),
@@ -72,7 +84,12 @@ export class UsersRepository extends TenantRepository {
         }).returning();
 
         // Get role name for response
-        const [role] = await this.db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+        const [role] = await this.db.select().from(roles).where(
+            and(
+                eq(roles.id, roleId),
+                this.tenantWhere(roles.tenantId)
+            )
+        ).limit(1);
 
         return this.mapToUserResponse(newUser, role?.name || 'user');
     }
@@ -89,7 +106,12 @@ export class UsersRepository extends TenantRepository {
             )
             .returning();
 
-        const [role] = await this.db.select().from(roles).where(eq(roles.id, updatedUser.roleId)).limit(1);
+        const [role] = await this.db.select().from(roles).where(
+            and(
+                eq(roles.id, updatedUser.roleId),
+                this.tenantWhere(roles.tenantId)
+            )
+        ).limit(1);
         return this.mapToUserResponse(updatedUser, role?.name || 'user');
     }
 

@@ -1,6 +1,6 @@
 import { Database } from '../database/tenant-repository-base.js';
 import { db } from '../db.js';
-import { eq, InferSelectModel } from 'drizzle-orm';
+import { eq, and, InferSelectModel } from 'drizzle-orm';
 import { users, tenants, roles } from '@my-saas-app/db';
 import bcrypt from 'bcryptjs';
 import { RegisterInput } from './schemas.js';
@@ -21,13 +21,23 @@ export class AuthRepository {
         return existing;
     }
 
-    async findRoleByName(roleName: string) {
-        const [role] = await this.db.select().from(roles).where(eq(roles.name, roleName)).limit(1);
+    async findRoleByName(tenantId: string, roleName: string) {
+        const [role] = await this.db.select().from(roles).where(
+            and(
+                eq(roles.tenantId, tenantId),
+                eq(roles.name, roleName)
+            )
+        ).limit(1);
         return role;
     }
 
-    async findRoleById(roleId: string) {
-        const [role] = await this.db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+    async findRoleById(tenantId: string, roleId: string) {
+        const [role] = await this.db.select().from(roles).where(
+            and(
+                eq(roles.tenantId, tenantId),
+                eq(roles.id, roleId)
+            )
+        ).limit(1);
         return role;
     }
 

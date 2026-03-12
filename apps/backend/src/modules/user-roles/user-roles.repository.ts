@@ -70,7 +70,13 @@ export class UserRolesRepository extends TenantRepository {
                 updatedAt: roles.updatedAt,
             })
             .from(userRoles)
-            .innerJoin(roles, eq(userRoles.roleId, roles.id))
+            .innerJoin(
+                roles,
+                and(
+                    eq(userRoles.roleId, roles.id),
+                    this.tenantWhere(roles.tenantId)
+                )
+            )
             .where(eq(userRoles.userId, userId));
     }
 }
