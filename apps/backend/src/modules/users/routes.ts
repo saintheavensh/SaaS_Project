@@ -1,9 +1,10 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Hono } from 'hono';
 import * as userController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
 import { tenantContextMiddleware } from '../../core/middlewares/tenantContextMiddleware.js';
 
-export const userRouter = new Hono();
+export const userRouter = new Hono<AppEnv>();
 
 // Apply global middlewares for this module
 userRouter.use('*', authMiddleware);

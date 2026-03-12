@@ -1,3 +1,4 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Context } from 'hono';
 import * as tenantService from './service.js';
 import { CreateTenantSchema, UpdateTenantSchema, TenantIdParamSchema } from './schemas.js';
@@ -6,7 +7,7 @@ import { successResponse, errorResponse } from '../../core/utils/response.js';
 /**
  * Get all tenants
  */
-export const getTenants = async (c: Context): Promise<Response> => {
+export const getTenants = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenants = await tenantService.getTenantsService();
         return successResponse(c, tenants, 'Tenants retrieved successfully');
@@ -19,7 +20,7 @@ export const getTenants = async (c: Context): Promise<Response> => {
 /**
  * Get a specific tenant by ID
  */
-export const getTenantById = async (c: Context): Promise<Response> => {
+export const getTenantById = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const id = c.req.param('id');
         const { id: validatedId } = TenantIdParamSchema.parse({ id });
@@ -39,7 +40,7 @@ export const getTenantById = async (c: Context): Promise<Response> => {
 /**
  * Create a new tenant
  */
-export const createTenant = async (c: Context): Promise<Response> => {
+export const createTenant = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const body = await c.req.json();
         const validatedData = CreateTenantSchema.parse(body);
@@ -55,7 +56,7 @@ export const createTenant = async (c: Context): Promise<Response> => {
 /**
  * Update an existing tenant
  */
-export const updateTenant = async (c: Context): Promise<Response> => {
+export const updateTenant = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const id = c.req.param('id');
         const { id: validatedId } = TenantIdParamSchema.parse({ id });
@@ -74,7 +75,7 @@ export const updateTenant = async (c: Context): Promise<Response> => {
 /**
  * Delete a tenant
  */
-export const deleteTenant = async (c: Context): Promise<Response> => {
+export const deleteTenant = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const id = c.req.param('id');
         const { id: validatedId } = TenantIdParamSchema.parse({ id });

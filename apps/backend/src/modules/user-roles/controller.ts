@@ -1,3 +1,4 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Context } from 'hono';
 import * as userRoleService from './service.js';
 import { AssignRoleToUserSchema, RemoveRoleFromUserSchema } from './schemas.js';
@@ -7,7 +8,7 @@ import { z } from 'zod';
 /**
  * Handler for assigning a role to a user
  */
-export const assignRoleHandler = async (c: Context): Promise<Response> => {
+export const assignRoleHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const userId = c.req.param('userId');
         const body = await c.req.json();
@@ -28,7 +29,7 @@ export const assignRoleHandler = async (c: Context): Promise<Response> => {
 /**
  * Handler for removing a role from a user
  */
-export const removeRoleHandler = async (c: Context): Promise<Response> => {
+export const removeRoleHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const userId = c.req.param('userId');
         const roleId = c.req.param('roleId');
@@ -49,7 +50,7 @@ export const removeRoleHandler = async (c: Context): Promise<Response> => {
 /**
  * Handler for getting all roles of a user
  */
-export const getUserRolesHandler = async (c: Context): Promise<Response> => {
+export const getUserRolesHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const userId = c.req.param('userId');
         const validatedUserId = z.string().uuid().parse(userId);

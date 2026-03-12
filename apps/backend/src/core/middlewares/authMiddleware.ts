@@ -2,11 +2,12 @@ import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
 import { getCookie } from 'hono/cookie';
 import { errorResponse } from '../utils/response.js';
+import { AppEnv } from '../types/app-env.js';
 
 /**
  * Authentication middleware - Verifies JWT from HTTP-only cookie and injects user into context
  */
-export const authMiddleware = async (c: Context, next: Next): Promise<void | Response> => {
+export const authMiddleware = async (c: Context<AppEnv>, next: Next): Promise<void | Response> => {
     const token = getCookie(c, 'auth_token');
 
     if (!token) {
@@ -23,7 +24,7 @@ export const authMiddleware = async (c: Context, next: Next): Promise<void | Res
     return processToken(c, next, token);
 };
 
-async function processToken(c: Context, next: Next, token: string) {
+async function processToken(c: Context<AppEnv>, next: Next, token: string) {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
         throw new Error('JWT_SECRET environment variable is missing');
@@ -32,9 +33,9 @@ async function processToken(c: Context, next: Next, token: string) {
     try {
         const payload = await verify(token, secret, 'HS256');
         c.set('jwtPayload', payload);
-        c.set('userId', payload.sub);
-        c.set('role', payload.role);
-        c.set('tenantId', payload.tenantId);
+        c.set('userId', payload.sub as string);
+        c.set('role', payload.role as string);
+        c.set('tenantId', payload.tenantId as string);
 
         await next();
     } catch (e) {

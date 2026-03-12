@@ -1,7 +1,8 @@
+import { AppEnv } from '../types/app-env.js';
 import { Hono } from 'hono';
 import * as tenantController from './controller.js';
 
-export const tenantRouter = new Hono();
+export const tenantRouter = new Hono<AppEnv>();
 
 /**
  * @swagger

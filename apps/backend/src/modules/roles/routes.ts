@@ -1,9 +1,10 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Hono } from 'hono';
 import * as roleController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
 import { tenantContextMiddleware } from '../../core/middlewares/tenantContextMiddleware.js';
 
-export const roleRouter = new Hono();
+export const roleRouter = new Hono<AppEnv>();
 
 // Apply global middlewares to all role routes
 roleRouter.use('*', authMiddleware);

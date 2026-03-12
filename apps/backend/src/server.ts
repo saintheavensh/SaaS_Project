@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { AppEnv } from './core/types/app-env.js';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { env } from 'hono/adapter';
@@ -9,7 +10,7 @@ import { auditMiddleware } from './core/middlewares/auditMiddleware.js';
 import { authMiddleware } from './core/middlewares/authMiddleware.js';
 import { tenantContextMiddleware } from './core/middlewares/tenantContextMiddleware.js';
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // Middleware
 app.use('*', logger());

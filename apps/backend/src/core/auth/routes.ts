@@ -1,7 +1,8 @@
+import { AppEnv } from '../types/app-env.js';
 import { Hono } from 'hono';
 import * as authController from './controller.js';
 
-export const authRouter = new Hono();
+export const authRouter = new Hono<AppEnv>();
 
 /**
  * @swagger

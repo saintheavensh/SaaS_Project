@@ -1,10 +1,11 @@
 import { Context, Next } from 'hono';
 import { errorResponse } from '../utils/response.js';
+import { AppEnv } from '../types/app-env.js';
 
 /**
  * Tenant context middleware - Extracts and validates tenant ID for isolation
  */
-export const tenantContextMiddleware = async (c: Context, next: Next): Promise<void | Response> => {
+export const tenantContextMiddleware = async (c: Context<AppEnv>, next: Next): Promise<void | Response> => {
     // Accessing context set by authMiddleware
     const contextTenantId = c.get('tenantId');
     const headerTenantId = c.req.header('X-Tenant-ID');

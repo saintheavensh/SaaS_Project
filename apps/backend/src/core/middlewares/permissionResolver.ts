@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm';
 import { Context } from 'hono';
 import { db } from '../db.js';
 import { userRoles, rolePermissions, permissions, roles } from '@my-saas-app/db';
+import { AppEnv } from '../types/app-env.js';
 
 /**
  * Resolve all permission names for a given user by traversing:
@@ -19,11 +20,11 @@ import { userRoles, rolePermissions, permissions, roles } from '@my-saas-app/db'
 export const resolveUserPermissions = async (
     userId: string,
     tenantId: string,
-    c?: Context
+    c?: Context<AppEnv>
 ): Promise<string[]> => {
     // Request-level cache: if permissions were already resolved, return them
     if (c) {
-        const cached = c.get('permissions') as string[] | undefined;
+        const cached = c.get('permissions');
         if (cached) {
             return cached;
         }

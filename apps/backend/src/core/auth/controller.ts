@@ -1,3 +1,4 @@
+import { AppEnv } from '../types/app-env.js';
 import { Context } from 'hono';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import * as authService from './service.js';
@@ -7,7 +8,7 @@ import { successResponse, errorResponse } from '../utils/response.js';
 /**
  * Handle user registration
  */
-export const register = async (c: Context): Promise<Response> => {
+export const register = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const body = await c.req.json();
         const validatedData = RegisterSchema.parse(body);
@@ -39,7 +40,7 @@ export const register = async (c: Context): Promise<Response> => {
 /**
  * Handle user login
  */
-export const login = async (c: Context): Promise<Response> => {
+export const login = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const body = await c.req.json();
         const validatedData = LoginSchema.parse(body);
@@ -71,7 +72,7 @@ export const login = async (c: Context): Promise<Response> => {
 /**
  * Handle user logout
  */
-export const logout = async (c: Context): Promise<Response> => {
+export const logout = async (c: Context<AppEnv>): Promise<Response> => {
     deleteCookie(c, 'auth_token', {
         path: '/',
         secure: process.env.NODE_ENV === 'production',

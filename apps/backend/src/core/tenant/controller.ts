@@ -1,3 +1,4 @@
+import { AppEnv } from '../types/app-env.js';
 import { Context } from 'hono';
 import * as tenantService from './service.js';
 import { CreateTenantSchema, UpdateTenantSchema } from './schemas.js';
@@ -6,7 +7,7 @@ import { successResponse, errorResponse } from '../utils/response.js';
 /**
  * Handle tenant creation (Super Admin Only)
  */
-export const create = async (c: Context): Promise<Response> => {
+export const create = async (c: Context<AppEnv>): Promise<Response> => {
     const role = c.get('role');
     if (role !== 'super-admin') {
         return errorResponse(c, 'Forbidden', 'Only super-admins can create tenants', 403);
@@ -28,7 +29,7 @@ export const create = async (c: Context): Promise<Response> => {
 /**
  * Handle getting a tenant (Ownership or Super Admin)
  */
-export const getOne = async (c: Context): Promise<Response> => {
+export const getOne = async (c: Context<AppEnv>): Promise<Response> => {
     const id = c.req.param('id');
     const userTenantId = c.get('tenantId');
     const role = c.get('role');
@@ -52,7 +53,7 @@ export const getOne = async (c: Context): Promise<Response> => {
 /**
  * Handle updating a tenant (Ownership or Super Admin)
  */
-export const update = async (c: Context): Promise<Response> => {
+export const update = async (c: Context<AppEnv>): Promise<Response> => {
     const id = c.req.param('id');
     const userTenantId = c.get('tenantId');
     const role = c.get('role');
@@ -80,7 +81,7 @@ export const update = async (c: Context): Promise<Response> => {
 /**
  * Handle deleting a tenant (Super Admin Only)
  */
-export const remove = async (c: Context): Promise<Response> => {
+export const remove = async (c: Context<AppEnv>): Promise<Response> => {
     const role = c.get('role');
     if (role !== 'super-admin') {
         return errorResponse(c, 'Forbidden', 'Only super-admins can delete tenants', 403);
