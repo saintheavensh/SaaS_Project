@@ -1,10 +1,9 @@
 import { InferSelectModel } from 'drizzle-orm';
-import { db } from '../../core/db.js';
 import { permissions } from '@my-saas-app/db';
 import { CreatePermissionInput, UpdatePermissionInput, PermissionResponse } from './schemas.js';
 import { PermissionRepository } from './repository.js';
 
-const permissionRepo = new PermissionRepository(db);
+const permissionRepo = new PermissionRepository();
 
 type PermissionTable = typeof permissions;
 

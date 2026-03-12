@@ -1,5 +1,4 @@
 import { InferSelectModel } from 'drizzle-orm';
-import { db } from '../../core/db.js';
 import { roles } from '@my-saas-app/db';
 import { CreateRoleInput, UpdateRoleInput, RoleResponse } from './schemas.js';
 import { RoleRepository } from './repository.js';

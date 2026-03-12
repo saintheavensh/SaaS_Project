@@ -1,5 +1,6 @@
 import { eq, InferSelectModel } from 'drizzle-orm';
 import { Database } from '../../core/database/tenant-repository-base.js';
+import { db } from '../../core/db.js';
 import { permissions } from '@my-saas-app/db';
 
 type PermissionTable = typeof permissions;
@@ -9,7 +10,11 @@ type PermissionTable = typeof permissions;
  * permissions are currently system-wide entities.
  */
 export class PermissionRepository {
-    constructor(private readonly db: Database) {}
+    private readonly db: Database;
+
+    constructor() {
+        this.db = db as unknown as Database;
+    }
 
     async findAll() {
         return this.db.select().from(permissions);

@@ -1,8 +1,7 @@
 import { CreateTenantInput, UpdateTenantInput, TenantResponse } from './schemas.js';
-import { db } from '../db.js';
 import { TenantRepository } from './repository.js';
 
-const tenantRepo = new TenantRepository(db);
+const tenantRepo = new TenantRepository();
 
 /**
  * Create a new tenant

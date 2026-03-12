@@ -2,9 +2,8 @@ import { sign } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
 import { RegisterInput, LoginInput, AuthResponse } from './schemas.js';
 import { AuthRepository } from './repository.js';
-import { db } from '../db.js';
 
-const authRepo = new AuthRepository(db);
+const authRepo = new AuthRepository();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {

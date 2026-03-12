@@ -1,5 +1,4 @@
 import bcrypt from 'bcryptjs';
-import { db } from '../../core/db.js';
 import { CreateUserInput, UpdateUserInput, UserResponse } from './schemas.js';
 import { UsersRepository } from './users.repository.js';
 import { RoleRepository } from '../roles/repository.js';

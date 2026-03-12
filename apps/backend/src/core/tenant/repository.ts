@@ -1,12 +1,17 @@
 import { eq, InferSelectModel } from 'drizzle-orm';
 import { Database } from '../database/tenant-repository-base.js';
+import { db } from '../db.js';
 import { tenants } from '@my-saas-app/db';
 import { CreateTenantInput, UpdateTenantInput } from './schemas.js';
 
 type TenantTable = typeof tenants;
 
 export class TenantRepository {
-    constructor(private readonly db: Database) {}
+    private readonly db: Database;
+    
+    constructor() {
+        this.db = db as unknown as Database;
+    }
 
     async create(input: { name: string, slug: string }) {
         const [newTenant] = await this.db.insert(tenants).values({

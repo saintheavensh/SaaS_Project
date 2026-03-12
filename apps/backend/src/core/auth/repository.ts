@@ -1,4 +1,5 @@
 import { Database } from '../database/tenant-repository-base.js';
+import { db } from '../db.js';
 import { eq, InferSelectModel } from 'drizzle-orm';
 import { users, tenants, roles } from '@my-saas-app/db';
 import bcrypt from 'bcryptjs';
@@ -9,7 +10,11 @@ import { RegisterInput } from './schemas.js';
  * Not necessarily bound to a single tenant for global operations like login.
  */
 export class AuthRepository {
-    constructor(private readonly db: Database) {}
+    private readonly db: Database;
+    
+    constructor() {
+        this.db = db as unknown as Database;
+    }
 
     async findUserByEmail(email: string) {
         const [existing] = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
