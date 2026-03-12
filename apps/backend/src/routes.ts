@@ -8,6 +8,7 @@ import { permissionRouter } from './modules/permissions/routes.js';
 import { rolePermissionRouter } from './modules/role-permissions/index.js';
 import { userRoleRouter } from './modules/user-roles/index.js';
 import { inventoryRouter } from './modules/inventory/index.js';
+import { productsRouter } from './modules/products/index.js';
 
 
 const router = new Hono<AppEnv>();
@@ -31,5 +32,8 @@ router.route('/permissions', permissionRouter);
 
 // Inventory Module
 router.route('/inventory', inventoryRouter);
+
+// Products Module
+router.route('/products', productsRouter);
 
 export default router;
