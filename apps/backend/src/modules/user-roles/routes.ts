@@ -2,11 +2,13 @@ import { AppEnv } from '../../core/types/app-env.js';
 import { Hono } from 'hono';
 import * as userRoleController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
+import { tenantContextMiddleware } from '../../core/middlewares/tenantContextMiddleware.js';
 
 export const userRoleRouter = new Hono<AppEnv>();
 
-// Apply auth middleware to all user-role routes
+// Apply auth and tenant context middleware to all user-role routes
 userRoleRouter.use('*', authMiddleware);
+userRoleRouter.use('*', tenantContextMiddleware);
 
 /**
  * @swagger

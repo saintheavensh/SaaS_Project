@@ -2,12 +2,14 @@ import { AppEnv } from '../../core/types/app-env.js';
 import { Hono } from 'hono';
 import * as tenantController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
+import { tenantContextMiddleware } from '../../core/middlewares/tenantContextMiddleware.js';
 import { permissionGuard } from '../../core/auth/permission-guard.js';
 
 export const tenantRouter = new Hono<AppEnv>();
 
-// Apply authentication globally
+// Apply authentication and tenant context globally
 tenantRouter.use('*', authMiddleware);
+tenantRouter.use('*', tenantContextMiddleware);
 
 /**
  * @swagger
