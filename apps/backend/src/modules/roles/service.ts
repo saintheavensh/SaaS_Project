@@ -22,7 +22,7 @@ const mapToRoleResponse = (role: InferSelectModel<RoleTable>): RoleResponse => (
  * Get all roles for a tenant
  */
 export const getRolesService = async (tenantId: string): Promise<RoleResponse[]> => {
-    const roleRepo = new RoleRepository(db, tenantId);
+    const roleRepo = new RoleRepository(tenantId);
     const results = await roleRepo.findAll();
 
     return results.map(mapToRoleResponse);
@@ -32,7 +32,7 @@ export const getRolesService = async (tenantId: string): Promise<RoleResponse[]>
  * Get a single role by ID and tenantId
  */
 export const getRoleByIdService = async (tenantId: string, id: string): Promise<RoleResponse | null> => {
-    const roleRepo = new RoleRepository(db, tenantId);
+    const roleRepo = new RoleRepository(tenantId);
     const result = await roleRepo.findById(id);
 
     if (!result) return null;
@@ -43,7 +43,7 @@ export const getRoleByIdService = async (tenantId: string, id: string): Promise<
  * Create a new role within a tenant
  */
 export const createRoleService = async (tenantId: string, input: CreateRoleInput): Promise<RoleResponse> => {
-    const roleRepo = new RoleRepository(db, tenantId);
+    const roleRepo = new RoleRepository(tenantId);
 
     // Check for name uniqueness within the tenant
     const existing = await roleRepo.findByName(input.name);
@@ -65,7 +65,7 @@ export const updateRoleService = async (
     id: string,
     input: UpdateRoleInput
 ): Promise<RoleResponse> => {
-    const roleRepo = new RoleRepository(db, tenantId);
+    const roleRepo = new RoleRepository(tenantId);
 
     // Check if role exists and belongs to tenant
     const role = await roleRepo.findById(id);
@@ -98,7 +98,7 @@ export const updateRoleService = async (
  * Delete a role
  */
 export const deleteRoleService = async (tenantId: string, id: string): Promise<void> => {
-    const roleRepo = new RoleRepository(db, tenantId);
+    const roleRepo = new RoleRepository(tenantId);
     await roleRepo.delete(id);
 
     // Some databases might not support rowCount on delete returning, 

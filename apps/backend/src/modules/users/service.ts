@@ -1,21 +1,22 @@
 import bcrypt from 'bcryptjs';
 import { db } from '../../core/db.js';
 import { CreateUserInput, UpdateUserInput, UserResponse } from './schemas.js';
-import { UserRepository } from './repository.js';
+import { UsersRepository } from './users.repository.js';
+import { RoleRepository } from '../roles/repository.js';
 
 /**
  * Get users scoped by tenant
  */
 export const getUsersService = async (tenantId: string): Promise<UserResponse[]> => {
-    const repository = new UserRepository(db, tenantId);
-    return repository.findAll();
+    const repository = new UsersRepository(tenantId);
+    return repository.listUsers();
 };
 
 /**
  * Get user by ID scoped by tenant
  */
 export const getUserByIdService = async (tenantId: string, id: string): Promise<UserResponse | null> => {
-    const repository = new UserRepository(db, tenantId);
+    const repository = new UsersRepository(tenantId);
     return repository.findById(id);
 };
 
@@ -23,7 +24,7 @@ export const getUserByIdService = async (tenantId: string, id: string): Promise<
  * Create a new user within a tenant
  */
 export const createUserService = async (tenantId: string, input: CreateUserInput): Promise<UserResponse> => {
-    const repository = new UserRepository(db, tenantId);
+    const repository = new UsersRepository(tenantId);
 
     // Check if email already exists for this tenant
     const existing = await repository.findByEmail(input.email);
@@ -35,22 +36,30 @@ export const createUserService = async (tenantId: string, input: CreateUserInput
     let roleId = input.roleId;
 
     if (!roleId) {
-        const defaultRole = await repository.findRoleByName('user');
+        // Use RoleRepository to fetch roles
+        const roleRepo = new RoleRepository(tenantId);
+        const defaultRole = await roleRepo.findByName('user');
+        
         if (!defaultRole) throw new Error('Default role not found. Please seed roles.');
         roleId = defaultRole.id;
     } else {
-        const role = await repository.findRoleById(roleId);
+        const roleRepo = new RoleRepository(tenantId);
+        const role = await roleRepo.findById(roleId!);
+        
         if (!role) throw new Error('Invalid role ID');
     }
 
-    return repository.create(input, roleId);
+    // Remove roleId from input to match UsersRepository signature
+    const { roleId: _omittedRoleId, ...userData } = input;
+    const passwordHash = await bcrypt.hash(input.password, 10);
+    return repository.createUser(userData, roleId, passwordHash);
 };
 
 /**
  * Update user details
  */
 export const updateUserService = async (tenantId: string, id: string, input: UpdateUserInput): Promise<UserResponse> => {
-    const repository = new UserRepository(db, tenantId);
+    const repository = new UsersRepository(tenantId);
 
     const existing = await repository.findById(id);
     if (!existing) {
@@ -67,7 +76,8 @@ export const updateUserService = async (tenantId: string, id: string, input: Upd
     }
 
     if (input.roleId) {
-        const role = await repository.findRoleById(input.roleId);
+        const roleRepo = new RoleRepository(tenantId);
+        const role = await roleRepo.findById(input.roleId);
         if (!role) throw new Error('Invalid role ID');
         updateData.roleId = input.roleId;
     }
