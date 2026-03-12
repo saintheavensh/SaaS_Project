@@ -1,7 +1,8 @@
-import { eq, InferSelectModel } from 'drizzle-orm';
+import { eq, and, InferSelectModel } from 'drizzle-orm';
 import { Database } from '../../core/database/tenant-repository-base.js';
 import { db } from '../../core/db.js';
-import { permissions } from '@my-saas-app/db';
+import { permissions, userRoles, roles, rolePermissions } from '@my-saas-app/db';
+import { Permission } from '../../core/auth/permission.types.js';
 
 type PermissionTable = typeof permissions;
 
@@ -14,6 +15,21 @@ export class PermissionRepository {
 
     constructor() {
         this.db = db as unknown as Database;
+    }
+
+    async resolveUserPermissions(userId: string, tenantId: string): Promise<Permission[]> {
+        const results = await this.db
+            .selectDistinct({ name: permissions.name })
+            .from(userRoles)
+            .innerJoin(roles, and(
+                eq(userRoles.roleId, roles.id),
+                eq(roles.tenantId, tenantId)
+            ))
+            .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+            .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+            .where(eq(userRoles.userId, userId));
+
+        return results.map(r => r.name as Permission);
     }
 
     async findAll() {

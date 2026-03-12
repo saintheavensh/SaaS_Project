@@ -1,9 +1,7 @@
-import { eq, and } from 'drizzle-orm';
 import { Context } from 'hono';
-import { db } from '../db.js';
-import { userRoles, rolePermissions, permissions, roles } from '@my-saas-app/db';
 import { AppEnv } from '../types/app-env.js';
 import { Permission } from '../auth/permission.types.js';
+import { PermissionRepository } from '../../modules/permissions/repository.js';
 
 /**
  * Resolve all permission names for a given user by traversing:
@@ -31,19 +29,8 @@ export const resolveUserPermissions = async (
         }
     }
 
-    // Single optimized JOIN: user_roles → roles (tenant-scoped) → role_permissions → permissions
-    const results = await db
-        .selectDistinct({ name: permissions.name })
-        .from(userRoles)
-        .innerJoin(roles, and(
-            eq(userRoles.roleId, roles.id),
-            eq(roles.tenantId, tenantId)
-        ))
-        .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-        .where(eq(userRoles.userId, userId));
-
-    const permissionNames = results.map(r => r.name as Permission);
+    const permissionRepo = new PermissionRepository();
+    const permissionNames = await permissionRepo.resolveUserPermissions(userId, tenantId);
 
     // Store in request-level cache
     if (c) {
