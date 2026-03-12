@@ -1,10 +1,11 @@
 import { PgColumn } from 'drizzle-orm/pg-core';
 import { SQL, eq } from 'drizzle-orm';
+import { db } from '../db.js';
 
 /**
  * Interface representing instances of Drizzle DB connections
  */
-export type Database = any; // You can refine this using Drizzle's NodePgDatabase type if strongly typed throughout project
+export type Database = typeof db;
 
 /**
  * Base abstract class for repositories representing tenant-isolated database access.
