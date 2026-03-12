@@ -1,7 +1,7 @@
-import { eq, and, InferSelectModel } from 'drizzle-orm';
-import { db } from '../../core/db.js';
+import { InferSelectModel } from 'drizzle-orm';
 import { roles } from '@my-saas-app/db';
 import { CreateRoleInput, UpdateRoleInput, RoleResponse } from './schemas.js';
+import { RoleRepository } from './repository.js';
 
 type RoleTable = typeof roles;
 
@@ -21,10 +21,8 @@ const mapToRoleResponse = (role: InferSelectModel<RoleTable>): RoleResponse => (
  * Get all roles for a tenant
  */
 export const getRolesService = async (tenantId: string): Promise<RoleResponse[]> => {
-    const results = await db
-        .select()
-        .from(roles)
-        .where(eq(roles.tenantId, tenantId));
+    const roleRepo = new RoleRepository(tenantId);
+    const results = await roleRepo.findAll();
 
     return results.map(mapToRoleResponse);
 };
@@ -33,16 +31,8 @@ export const getRolesService = async (tenantId: string): Promise<RoleResponse[]>
  * Get a single role by ID and tenantId
  */
 export const getRoleByIdService = async (tenantId: string, id: string): Promise<RoleResponse | null> => {
-    const [result] = await db
-        .select()
-        .from(roles)
-        .where(
-            and(
-                eq(roles.tenantId, tenantId),
-                eq(roles.id, id)
-            )
-        )
-        .limit(1);
+    const roleRepo = new RoleRepository(tenantId);
+    const result = await roleRepo.findById(id);
 
     if (!result) return null;
     return mapToRoleResponse(result);
@@ -52,30 +42,16 @@ export const getRoleByIdService = async (tenantId: string, id: string): Promise<
  * Create a new role within a tenant
  */
 export const createRoleService = async (tenantId: string, input: CreateRoleInput): Promise<RoleResponse> => {
+    const roleRepo = new RoleRepository(tenantId);
+
     // Check for name uniqueness within the tenant
-    const [existing] = await db
-        .select()
-        .from(roles)
-        .where(
-            and(
-                eq(roles.tenantId, tenantId),
-                eq(roles.name, input.name)
-            )
-        )
-        .limit(1);
+    const existing = await roleRepo.findByName(input.name);
 
     if (existing) {
         throw new Error(`Role with name "${input.name}" already exists for this tenant`);
     }
 
-    const [newRole] = await db
-        .insert(roles)
-        .values({
-            tenantId,
-            name: input.name,
-            description: input.description ?? null,
-        })
-        .returning();
+    const newRole = await roleRepo.create(input.name, input.description ?? null);
 
     return mapToRoleResponse(newRole);
 };
@@ -88,24 +64,17 @@ export const updateRoleService = async (
     id: string,
     input: UpdateRoleInput
 ): Promise<RoleResponse> => {
+    const roleRepo = new RoleRepository(tenantId);
+
     // Check if role exists and belongs to tenant
-    const role = await getRoleByIdService(tenantId, id);
+    const role = await roleRepo.findById(id);
     if (!role) {
         throw new Error('Role not found');
     }
 
     // If changing name, check uniqueness
     if (input.name && input.name !== role.name) {
-        const [existing] = await db
-            .select()
-            .from(roles)
-            .where(
-                and(
-                    eq(roles.tenantId, tenantId),
-                    eq(roles.name, input.name)
-                )
-            )
-            .limit(1);
+        const existing = await roleRepo.findByName(input.name);
 
         if (existing) {
             throw new Error(`Role with name "${input.name}" already exists for this tenant`);
@@ -119,16 +88,7 @@ export const updateRoleService = async (
     if (input.name !== undefined) updateData.name = input.name;
     if (input.description !== undefined) updateData.description = input.description ?? null;
 
-    const [updatedRole] = await db
-        .update(roles)
-        .set(updateData)
-        .where(
-            and(
-                eq(roles.tenantId, tenantId),
-                eq(roles.id, id)
-            )
-        )
-        .returning();
+    const updatedRole = await roleRepo.update(id, updateData);
 
     return mapToRoleResponse(updatedRole);
 };
@@ -137,14 +97,8 @@ export const updateRoleService = async (
  * Delete a role
  */
 export const deleteRoleService = async (tenantId: string, id: string): Promise<void> => {
-    const result = await db
-        .delete(roles)
-        .where(
-            and(
-                eq(roles.tenantId, tenantId),
-                eq(roles.id, id)
-            )
-        );
+    const roleRepo = new RoleRepository(tenantId);
+    await roleRepo.delete(id);
 
     // Some databases might not support rowCount on delete returning, 
     // but Drizzle with PG usually does. For now, we'll assume success if no error.
