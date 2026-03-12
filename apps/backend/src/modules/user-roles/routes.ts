@@ -1,8 +1,9 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Hono } from 'hono';
 import * as userRoleController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
 
-export const userRoleRouter = new Hono();
+export const userRoleRouter = new Hono<AppEnv>();
 
 // Apply auth middleware to all user-role routes
 userRoleRouter.use('*', authMiddleware);

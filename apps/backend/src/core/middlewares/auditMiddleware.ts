@@ -1,10 +1,11 @@
 import { Context, Next } from 'hono';
 import { logger } from '../utils/logger.js';
+import { AppEnv } from '../types/app-env.js';
 
 /**
  * Audit logging middleware skeleton
  */
-export const auditMiddleware = async (c: Context, next: Next): Promise<void> => {
+export const auditMiddleware = async (c: Context<AppEnv>, next: Next): Promise<void> => {
     const start = Date.now();
 
     await next();

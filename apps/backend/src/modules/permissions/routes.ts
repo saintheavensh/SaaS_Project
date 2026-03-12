@@ -1,8 +1,9 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Hono } from 'hono';
 import * as permissionController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
 
-export const permissionRouter = new Hono();
+export const permissionRouter = new Hono<AppEnv>();
 
 // Apply auth middleware to all permission routes
 permissionRouter.use('*', authMiddleware);

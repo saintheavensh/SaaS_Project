@@ -1,3 +1,4 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Context } from 'hono';
 import * as roleService from './service.js';
 import { CreateRoleSchema, UpdateRoleSchema, RoleIdParamSchema } from './schemas.js';
@@ -6,7 +7,7 @@ import { successResponse, errorResponse } from '../../core/utils/response.js';
 /**
  * Get all roles for the current tenant
  */
-export const getRoles = async (c: Context): Promise<Response> => {
+export const getRoles = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         if (!tenantId) {
@@ -24,7 +25,7 @@ export const getRoles = async (c: Context): Promise<Response> => {
 /**
  * Get a specific role by ID
  */
-export const getRoleById = async (c: Context): Promise<Response> => {
+export const getRoleById = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         const id = c.req.param('id');
@@ -51,7 +52,7 @@ export const getRoleById = async (c: Context): Promise<Response> => {
 /**
  * Create a new role
  */
-export const createRole = async (c: Context): Promise<Response> => {
+export const createRole = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         if (!tenantId) {
@@ -72,7 +73,7 @@ export const createRole = async (c: Context): Promise<Response> => {
 /**
  * Update an existing role
  */
-export const updateRole = async (c: Context): Promise<Response> => {
+export const updateRole = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         const id = c.req.param('id');
@@ -98,7 +99,7 @@ export const updateRole = async (c: Context): Promise<Response> => {
 /**
  * Delete a role
  */
-export const deleteRole = async (c: Context): Promise<Response> => {
+export const deleteRole = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         const id = c.req.param('id');

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { AppEnv } from './core/types/app-env.js';
 import { authRouter } from './core/auth/routes.js';
 import { tenantRouter } from './modules/tenants/routes.js';
 import { userRouter } from './modules/users/routes.js';
@@ -9,7 +10,7 @@ import { userRoleRouter } from './modules/user-roles/index.js';
 import { authMiddleware } from './core/middlewares/authMiddleware.js';
 import { tenantContextMiddleware } from './core/middlewares/tenantContextMiddleware.js';
 
-const router = new Hono();
+const router = new Hono<AppEnv>();
 
 // Auth Module (Public)
 router.route('/auth', authRouter);

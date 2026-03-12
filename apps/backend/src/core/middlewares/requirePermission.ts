@@ -1,6 +1,7 @@
 import { Context, Next } from 'hono';
 import { resolveUserPermissions } from './permissionResolver.js';
 import { errorResponse } from '../utils/response.js';
+import { AppEnv } from '../types/app-env.js';
 
 /**
  * Middleware factory that enforces a specific permission on a route.
@@ -13,9 +14,9 @@ import { errorResponse } from '../utils/response.js';
  * 4. Returns 403 if missing; calls next() if present.
  */
 export const requirePermission = (permissionName: string) => {
-    return async (c: Context, next: Next): Promise<void | Response> => {
-        const userId = c.get('userId') as string | undefined;
-        const tenantId = c.get('tenantId') as string | undefined;
+    return async (c: Context<AppEnv>, next: Next): Promise<void | Response> => {
+        const userId = c.get('userId');
+        const tenantId = c.get('tenantId');
 
         if (!userId || !tenantId) {
             return c.json({

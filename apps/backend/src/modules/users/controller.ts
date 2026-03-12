@@ -1,3 +1,4 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Context } from 'hono';
 import * as userService from './service.js';
 import { CreateUserSchema, UpdateUserSchema, UserIdParamSchema } from './schemas.js';
@@ -6,7 +7,7 @@ import { successResponse, errorResponse } from '../../core/utils/response.js';
 /**
  * Get all users for the current tenant
  */
-export const getUsers = async (c: Context): Promise<Response> => {
+export const getUsers = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         if (!tenantId) {
@@ -24,7 +25,7 @@ export const getUsers = async (c: Context): Promise<Response> => {
 /**
  * Get a specific user by ID
  */
-export const getUserById = async (c: Context): Promise<Response> => {
+export const getUserById = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         const id = c.req.param('id');
@@ -51,7 +52,7 @@ export const getUserById = async (c: Context): Promise<Response> => {
 /**
  * Create a new user
  */
-export const createUser = async (c: Context): Promise<Response> => {
+export const createUser = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         if (!tenantId) {
@@ -72,7 +73,7 @@ export const createUser = async (c: Context): Promise<Response> => {
 /**
  * Update user details
  */
-export const updateUser = async (c: Context): Promise<Response> => {
+export const updateUser = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
         const id = c.req.param('id');
@@ -98,16 +99,16 @@ export const updateUser = async (c: Context): Promise<Response> => {
 /**
  * Get current user profile
  */
-export const getProfile = async (c: Context): Promise<Response> => {
+export const getProfile = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const tenantId = c.get('tenantId');
-        const user = c.get('user'); // Set by authMiddleware
+        const userId = c.get('userId'); // Set by authMiddleware
 
-        if (!tenantId || !user?.id) {
+        if (!tenantId || !userId) {
             return errorResponse(c, 'Unauthorized', 'Authenticated session not found', 401);
         }
 
-        const profile = await userService.getProfileService(tenantId, user.id);
+        const profile = await userService.getProfileService(tenantId, userId);
         return successResponse(c, profile, 'Profile retrieved successfully');
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';

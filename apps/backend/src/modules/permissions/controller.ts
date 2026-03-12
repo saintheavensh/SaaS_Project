@@ -1,3 +1,4 @@
+import { AppEnv } from '../../core/types/app-env.js';
 import { Context } from 'hono';
 import * as permissionService from './service.js';
 import { CreatePermissionSchema, UpdatePermissionSchema, PermissionIdParamSchema } from './schemas.js';
@@ -6,7 +7,7 @@ import { successResponse, errorResponse } from '../../core/utils/response.js';
 /**
  * Handle listing all permissions
  */
-export const getPermissionsHandler = async (c: Context): Promise<Response> => {
+export const getPermissionsHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const permissions = await permissionService.getPermissionsService();
         return successResponse(c, permissions, 'Permissions retrieved successfully');
@@ -19,7 +20,7 @@ export const getPermissionsHandler = async (c: Context): Promise<Response> => {
 /**
  * Handle getting a specific permission by ID
  */
-export const getPermissionHandler = async (c: Context): Promise<Response> => {
+export const getPermissionHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const id = c.req.param('id');
         const { id: validatedId } = PermissionIdParamSchema.parse({ id });
@@ -39,7 +40,7 @@ export const getPermissionHandler = async (c: Context): Promise<Response> => {
 /**
  * Handle creating a new permission
  */
-export const createPermissionHandler = async (c: Context): Promise<Response> => {
+export const createPermissionHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const body = await c.req.json();
         const validatedData = CreatePermissionSchema.parse(body);
@@ -55,7 +56,7 @@ export const createPermissionHandler = async (c: Context): Promise<Response> => 
 /**
  * Handle updating an existing permission
  */
-export const updatePermissionHandler = async (c: Context): Promise<Response> => {
+export const updatePermissionHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const id = c.req.param('id');
         const { id: validatedId } = PermissionIdParamSchema.parse({ id });
@@ -74,7 +75,7 @@ export const updatePermissionHandler = async (c: Context): Promise<Response> => 
 /**
  * Handle deleting a permission
  */
-export const deletePermissionHandler = async (c: Context): Promise<Response> => {
+export const deletePermissionHandler = async (c: Context<AppEnv>): Promise<Response> => {
     try {
         const id = c.req.param('id');
         const { id: validatedId } = PermissionIdParamSchema.parse({ id });
