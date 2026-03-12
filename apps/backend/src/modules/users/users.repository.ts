@@ -1,5 +1,6 @@
 import { eq, and, InferSelectModel } from 'drizzle-orm';
 import { Database, TenantRepository } from '../../core/database/tenant-repository-base.js';
+import { db } from '../../core/db.js';
 import { users, roles } from '@my-saas-app/db';
 import { CreateUserInput, UpdateUserInput, UserResponse } from './schemas.js';
 
@@ -10,8 +11,8 @@ type RoleTable = typeof roles;
  * Repository for User entities, enforcing tenant isolation.
  */
 export class UsersRepository extends TenantRepository {
-    constructor(db: Database, tenantId: string) {
-        super(db, tenantId);
+    constructor(tenantId: string) {
+        super(db as unknown as Database, tenantId);
     }
 
     private mapToUserResponse(user: InferSelectModel<UserTable>, roleName: string): UserResponse {

@@ -13,12 +13,22 @@ export class TenantRepository {
         this.db = db as unknown as Database;
     }
 
-    async create(input: { name: string, slug: string }) {
+    async create(input: { name: string, slug: string, description?: string | null }) {
         const [newTenant] = await this.db.insert(tenants).values({
             name: input.name,
             slug: input.slug,
+            description: input.description ?? null,
         }).returning();
         return newTenant;
+    }
+
+    async findAll() {
+        return this.db.select().from(tenants);
+    }
+
+    async findBySlug(slug: string) {
+        const [tenant] = await this.db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
+        return tenant;
     }
 
     async findById(id: string) {

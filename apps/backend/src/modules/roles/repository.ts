@@ -1,12 +1,13 @@
 import { eq, and, InferSelectModel } from 'drizzle-orm';
 import { Database, TenantRepository as BaseTenantRepository } from '../../core/database/tenant-repository-base.js';
+import { db } from '../../core/db.js';
 import { roles } from '@my-saas-app/db';
 
 type RoleTable = typeof roles;
 
 export class RoleRepository extends BaseTenantRepository {
-    constructor(db: Database, tenantId: string) {
-        super(db, tenantId);
+    constructor(tenantId: string) {
+        super(db as unknown as Database, tenantId);
     }
 
     async findAll() {

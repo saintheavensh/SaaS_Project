@@ -1,7 +1,9 @@
-import { eq, InferSelectModel } from 'drizzle-orm';
-import { db } from '../../core/db.js';
+import { InferSelectModel } from 'drizzle-orm';
 import { tenants } from '@my-saas-app/db';
 import { CreateTenantInput, UpdateTenantInput, TenantResponse } from './schemas.js';
+import { TenantRepository } from '../../core/tenant/repository.js';
+
+const tenantRepo = new TenantRepository();
 
 type TenantTable = typeof tenants;
 
@@ -21,9 +23,7 @@ const mapToTenantResponse = (tenant: InferSelectModel<TenantTable>): TenantRespo
  * Get all tenants (usually restricted to super-admins)
  */
 export const getTenantsService = async (): Promise<TenantResponse[]> => {
-    const results = await db
-        .select()
-        .from(tenants);
+    const results = await tenantRepo.findAll();
 
     return results.map(mapToTenantResponse);
 };
@@ -32,11 +32,7 @@ export const getTenantsService = async (): Promise<TenantResponse[]> => {
  * Get a single tenant by ID
  */
 export const getTenantByIdService = async (id: string): Promise<TenantResponse | null> => {
-    const [result] = await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.id, id))
-        .limit(1);
+    const result = await tenantRepo.findById(id);
 
     if (!result) return null;
     return mapToTenantResponse(result);
@@ -47,24 +43,17 @@ export const getTenantByIdService = async (id: string): Promise<TenantResponse |
  */
 export const createTenantService = async (input: CreateTenantInput): Promise<TenantResponse> => {
     // Check if name or slug already exists
-    const [existingSlug] = await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.slug, input.slug))
-        .limit(1);
+    const existingSlug = await tenantRepo.findBySlug(input.slug);
 
     if (existingSlug) {
         throw new Error(`Tenant with slug "${input.slug}" already exists`);
     }
 
-    const [newTenant] = await db
-        .insert(tenants)
-        .values({
-            name: input.name,
-            slug: input.slug,
-            description: input.description ?? null,
-        })
-        .returning();
+    const newTenant = await tenantRepo.create({
+        name: input.name,
+        slug: input.slug,
+        description: input.description ?? null,
+    });
 
     return mapToTenantResponse(newTenant);
 };
@@ -89,11 +78,7 @@ export const updateTenantService = async (
     if (input.slug !== undefined) updateData.slug = input.slug;
     if (input.description !== undefined) updateData.description = input.description ?? null;
 
-    const [updatedTenant] = await db
-        .update(tenants)
-        .set(updateData)
-        .where(eq(tenants.id, id))
-        .returning();
+    const updatedTenant = await tenantRepo.update(id, updateData);
 
     return mapToTenantResponse(updatedTenant);
 };
@@ -102,7 +87,5 @@ export const updateTenantService = async (
  * Delete a tenant
  */
 export const deleteTenantService = async (id: string): Promise<void> => {
-    await db
-        .delete(tenants)
-        .where(eq(tenants.id, id));
+    await tenantRepo.delete(id);
 };
