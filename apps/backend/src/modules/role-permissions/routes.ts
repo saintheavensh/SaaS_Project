@@ -2,11 +2,13 @@ import { AppEnv } from '../../core/types/app-env.js';
 import { Hono } from 'hono';
 import * as rolePermissionController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
+import { tenantContextMiddleware } from '../../core/middlewares/tenantContextMiddleware.js';
 
 export const rolePermissionRouter = new Hono<AppEnv>();
 
-// Apply auth middleware to all role-permission routes
+// Apply auth and tenant context middleware to all role-permission routes
 rolePermissionRouter.use('*', authMiddleware);
+rolePermissionRouter.use('*', tenantContextMiddleware);
 
 /**
  * @swagger

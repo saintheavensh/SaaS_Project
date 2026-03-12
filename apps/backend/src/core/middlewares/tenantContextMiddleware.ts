@@ -3,22 +3,18 @@ import { errorResponse } from '../utils/response.js';
 import { AppEnv } from '../types/app-env.js';
 
 /**
- * Tenant context middleware - Extracts and validates tenant ID for isolation
+ * Tenant context middleware - Validates tenant ID for isolation.
+ *
+ * SECURITY: Only trusts tenantId from the authenticated JWT context
+ * (set by authMiddleware). Never falls back to user-controlled headers
+ * or request body to prevent tenant impersonation attacks.
  */
 export const tenantContextMiddleware = async (c: Context<AppEnv>, next: Next): Promise<void | Response> => {
-    // Accessing context set by authMiddleware
-    const contextTenantId = c.get('tenantId');
-    const headerTenantId = c.req.header('X-Tenant-ID');
-
-    // Priority: 1. Auth context, 2. Request header
-    const tenantId = contextTenantId || headerTenantId;
+    const tenantId = c.get('tenantId');
 
     if (!tenantId) {
-        return errorResponse(c, 'Bad Request', 'Tenant context is required', 400);
+        return errorResponse(c, 'Unauthorized', 'Tenant context missing. Authentication required.', 401);
     }
-
-    // Set it for downstream use (controllers, services)
-    c.set('tenantId', tenantId);
 
     await next();
 };
