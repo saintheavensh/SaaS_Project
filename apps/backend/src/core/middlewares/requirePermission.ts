@@ -2,6 +2,7 @@ import { Context, Next } from 'hono';
 import { resolveUserPermissions } from './permissionResolver.js';
 import { errorResponse } from '../utils/response.js';
 import { AppEnv } from '../types/app-env.js';
+import { Permission } from '../auth/permission.types.js';
 
 /**
  * Middleware factory that enforces a specific permission on a route.
@@ -13,7 +14,7 @@ import { AppEnv } from '../types/app-env.js';
  * 3. Checks if the required permission exists in the resolved list.
  * 4. Returns 403 if missing; calls next() if present.
  */
-export const requirePermission = (permissionName: string) => {
+export const requirePermission = (permissionName: Permission) => {
     return async (c: Context<AppEnv>, next: Next): Promise<void | Response> => {
         const userId = c.get('userId');
         const tenantId = c.get('tenantId');
@@ -27,7 +28,7 @@ export const requirePermission = (permissionName: string) => {
 
         const userPermissions = await resolveUserPermissions(userId, tenantId, c);
 
-        if (!userPermissions.includes(permissionName)) {
+        if (!userPermissions.includes(permissionName as any)) { // Cast as any temporarily if userPermissions is still string[] until step 3
             return c.json({
                 error: 'FORBIDDEN',
                 message: 'You do not have permission to perform this action'

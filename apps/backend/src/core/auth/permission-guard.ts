@@ -8,5 +8,5 @@ import { requirePermission } from '../middlewares/requirePermission.js';
  * @returns Hono middleware that enforces the permission
  */
 export const permissionGuard = (permissionName: string) => {
-    return requirePermission(permissionName);
+    return requirePermission(permissionName as any);
 };
