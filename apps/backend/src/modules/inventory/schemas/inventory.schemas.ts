@@ -1,6 +1,30 @@
 import { z } from 'zod';
 
 /**
- * Inventory Schemas skeleton
+ * Schema for stock deduction
  */
-export const InventorySchemas = {};
+export const DeductStockSchema = z.object({
+    productId: z.string().uuid('Invalid Product ID'),
+    quantity: z.number().positive('Quantity must be greater than zero'),
+});
+
+/**
+ * Schema for adding stock from purchase
+ */
+export const AddStockSchema = z.object({
+    productId: z.string().uuid('Invalid Product ID'),
+    buyPrice: z.string().min(1, 'Buy price is required'),
+    sellPrice: z.string().min(1, 'Sell price is required'),
+    initialStock: z.string().min(1, 'Initial stock is required'),
+});
+
+/**
+ * Schema for opname finalization
+ */
+export const FinalizeOpnameSchema = z.object({
+    sessionId: z.string().uuid('Invalid Session ID'),
+});
+
+export type DeductStockInput = z.infer<typeof DeductStockSchema>;
+export type AddStockInput = z.infer<typeof AddStockSchema>;
+export type FinalizeOpnameInput = z.infer<typeof FinalizeOpnameSchema>;
