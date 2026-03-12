@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import * as tenantController from './controller.js';
 import { authMiddleware } from '../../core/middlewares/authMiddleware.js';
-import { requirePermission } from '../../core/middlewares/requirePermission.js';
+import { permissionGuard } from '../../core/auth/permission-guard.js';
 
 export const tenantRouter = new Hono();
 
@@ -15,7 +15,7 @@ tenantRouter.use('*', authMiddleware);
  *     tags: [Tenants]
  *     summary: List all tenants
  */
-tenantRouter.get('/', requirePermission('tenant.read'), tenantController.getTenants);
+tenantRouter.get('/', permissionGuard('tenant.read'), tenantController.getTenants);
 
 /**
  * @swagger
@@ -24,7 +24,7 @@ tenantRouter.get('/', requirePermission('tenant.read'), tenantController.getTena
  *     tags: [Tenants]
  *     summary: Get tenant details by ID
  */
-tenantRouter.get('/:id', requirePermission('tenant.read'), tenantController.getTenantById);
+tenantRouter.get('/:id', permissionGuard('tenant.read'), tenantController.getTenantById);
 
 /**
  * @swagger
@@ -33,7 +33,7 @@ tenantRouter.get('/:id', requirePermission('tenant.read'), tenantController.getT
  *     tags: [Tenants]
  *     summary: Create a new tenant
  */
-tenantRouter.post('/', requirePermission('tenant.create'), tenantController.createTenant);
+tenantRouter.post('/', permissionGuard('tenant.create'), tenantController.createTenant);
 
 /**
  * @swagger
@@ -42,7 +42,7 @@ tenantRouter.post('/', requirePermission('tenant.create'), tenantController.crea
  *     tags: [Tenants]
  *     summary: Update an existing tenant
  */
-tenantRouter.put('/:id', requirePermission('tenant.update'), tenantController.updateTenant);
+tenantRouter.put('/:id', permissionGuard('tenant.update'), tenantController.updateTenant);
 
 /**
  * @swagger
@@ -51,4 +51,4 @@ tenantRouter.put('/:id', requirePermission('tenant.update'), tenantController.up
  *     tags: [Tenants]
  *     summary: Delete a tenant
  */
-tenantRouter.delete('/:id', requirePermission('tenant.delete'), tenantController.deleteTenant);
+tenantRouter.delete('/:id', permissionGuard('tenant.delete'), tenantController.deleteTenant);
