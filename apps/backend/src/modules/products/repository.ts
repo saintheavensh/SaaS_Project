@@ -35,8 +35,8 @@ export class ProductsRepository extends TenantRepository {
      */
     async insertProduct(productData: {
         name: string;
-        description?: string;
-        categoryId?: string;
+        description?: string | null | undefined;
+        categoryId?: string | null | undefined;
     }) {
         const [newProduct] = await this.db
             .insert(products)
@@ -54,10 +54,15 @@ export class ProductsRepository extends TenantRepository {
     /**
      * Update an existing product
      */
-    async updateProduct(productId: string, updateData: Partial<InferSelectModel<ProductTable>> & { updatedAt: Date }) {
+    async updateProduct(productId: string, updateData: {
+        name?: string | undefined;
+        description?: string | null | undefined;
+        categoryId?: string | null | undefined;
+        updatedAt: Date;
+    }) {
         const [updatedProduct] = await this.db
             .update(products)
-            .set(updateData)
+            .set(updateData as any)
             .where(
                 and(
                     this.tenantWhere(products.tenantId),
