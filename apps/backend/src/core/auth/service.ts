@@ -32,7 +32,7 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResponse> 
     );
 
     // Get 'user' role
-    const userRole = await authRepo.findRoleByName('user');
+    const userRole = await authRepo.findRoleByName(newTenant.id, 'user');
 
     if (!userRole) {
         throw new Error('Default user role not found. Please run database seeding.');
@@ -87,7 +87,7 @@ export const loginUser = async (input: LoginInput): Promise<AuthResponse> => {
     }
 
     // Get role name
-    const role = await authRepo.findRoleById(user.roleId);
+    const role = await authRepo.findRoleById(user.tenantId, user.roleId);
     if (!role) {
         throw new Error('User role configuration error');
     }
