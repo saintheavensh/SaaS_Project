@@ -28,7 +28,7 @@ export const requirePermission = (permissionName: Permission) => {
 
         const userPermissions = await resolveUserPermissions(userId, tenantId, c);
 
-        if (!userPermissions.includes(permissionName as any)) { // Cast as any temporarily if userPermissions is still string[] until step 3
+        if (!userPermissions.includes(permissionName)) {
             return c.json({
                 error: 'FORBIDDEN',
                 message: 'You do not have permission to perform this action'
