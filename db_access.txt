@@ -1,0 +1,31 @@
+apps/backend/src/__tests__/e2e/auth.e2e.test.ts:42:        const dbTenant = await db.select().from(tenants).where(eq(tenants.slug, payload.tenantSlug));
+apps/backend/src/__tests__/e2e/auth.e2e.test.ts:45:        const dbUser = await db.select().from(users).where(eq(users.email, payload.email));
+apps/backend/src/__tests__/e2e/tenant.e2e.test.ts:50:        const dbTenant = await db.select().from(tenants).where(eq(tenants.slug, payload.slug));
+apps/backend/src/__tests__/e2e/tenant.e2e.test.ts:68:        const [dbTenant] = await db.select().from(tenants).where(eq(tenants.id, testTenantId));
+apps/backend/src/__tests__/e2e/tenant.e2e.test.ts:74:        const [tempTenant] = await db.insert(tenants).values({
+apps/backend/src/__tests__/e2e/tenant.e2e.test.ts:86:        const dbTenant = await db.select().from(tenants).where(eq(tenants.id, tempTenant.id));
+apps/backend/src/core/auth/service.ts:18:    const [existing] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+apps/backend/src/core/auth/service.ts:29:    const [newTenant] = await db.insert(tenants).values({
+apps/backend/src/core/auth/service.ts:35:    const [userRole] = await db.select().from(roles).where(eq(roles.name, 'user')).limit(1);
+apps/backend/src/core/auth/service.ts:42:    const [newUser] = await db.insert(users).values({
+apps/backend/src/core/auth/service.ts:77:    const [user] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+apps/backend/src/core/auth/service.ts:90:    const [role] = await db.select().from(roles).where(eq(roles.id, user.roleId)).limit(1);
+apps/backend/src/core/tenant/service.ts:10:    const [newTenant] = await db.insert(tenants).values({
+apps/backend/src/core/tenant/service.ts:28:    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+apps/backend/src/core/tenant/service.ts:45:    const [updatedTenant] = await db.update(tenants)
+apps/backend/src/core/tenant/service.ts:70:    await db.delete(tenants).where(eq(tenants.id, id));
+apps/backend/src/core/utils/dbHelpers.ts:14:        await db.delete(users);
+apps/backend/src/core/utils/dbHelpers.ts:15:        await db.delete(tenants);
+apps/backend/src/core/utils/dbHelpers.ts:16:        await db.delete(roles);
+apps/backend/src/core/utils/dbHelpers.ts:28:    const [tenant] = await db.insert(tenants).values({
+apps/backend/src/core/utils/dbHelpers.ts:34:    const [role] = await db.insert(roles).values({
+apps/backend/src/core/utils/dbHelpers.ts:44:    const [user] = await db.insert(users).values({
+apps/backend/src/modules/role-permissions/service.ts:9:    await db.insert(rolePermissions)
+apps/backend/src/modules/role-permissions/service.ts:21:    await db.delete(rolePermissions)
+apps/backend/src/modules/user-roles/service.ts:9:    await db.insert(userRoles)
+apps/backend/src/modules/user-roles/service.ts:21:    await db.delete(userRoles)
+apps/backend/src/modules/users/repository.ts:68:        const [newUser] = await this.db.insert(users).values({
+apps/backend/src/modules/users/repository.ts:77:        const [role] = await this.db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+apps/backend/src/modules/users/repository.ts:94:        const [role] = await this.db.select().from(roles).where(eq(roles.id, updatedUser.roleId)).limit(1);
+apps/backend/src/modules/users/repository.ts:114:        const [role] = await this.db.select().from(roles).where(
+apps/backend/src/modules/users/repository.ts:124:        const [role] = await this.db.select().from(roles).where(

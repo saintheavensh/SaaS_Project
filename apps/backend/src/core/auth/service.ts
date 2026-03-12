@@ -1,9 +1,10 @@
 import { sign } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
-import { eq } from 'drizzle-orm';
-import { db } from '../db.js';
-import { users, tenants, roles } from '@my-saas-app/db';
 import { RegisterInput, LoginInput, AuthResponse } from './schemas.js';
+import { AuthRepository } from './repository.js';
+import { db } from '../db.js';
+
+const authRepo = new AuthRepository(db);
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -15,7 +16,7 @@ if (!JWT_SECRET) {
  */
 export const registerUser = async (input: RegisterInput): Promise<AuthResponse> => {
     // Check if user exists
-    const [existing] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+    const existing = await authRepo.findUserByEmail(input.email);
     if (existing) {
         throw new Error('User already exists');
     }
@@ -26,26 +27,26 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResponse> 
     // Get default tenant or create one
     // In a real flow, you might have a tenant identifier, 
     // but for simple register we create a new tenant.
-    const [newTenant] = await db.insert(tenants).values({
-        name: `${input.name}'s Workspace`,
-        slug: input.email.split('@')[0].toLowerCase() + '-' + Math.random().toString(36).substring(7),
-    }).returning();
+    const newTenant = await authRepo.createTenant(
+        `${input.name}'s Workspace`,
+        input.email.split('@')[0].toLowerCase() + '-' + Math.random().toString(36).substring(7)
+    );
 
     // Get 'user' role
-    const [userRole] = await db.select().from(roles).where(eq(roles.name, 'user')).limit(1);
+    const userRole = await authRepo.findRoleByName('user');
 
     if (!userRole) {
         throw new Error('Default user role not found. Please run database seeding.');
     }
 
     // Create user
-    const [newUser] = await db.insert(users).values({
-        tenantId: newTenant.id,
-        email: input.email,
-        name: input.name,
+    const newUser = await authRepo.createUser(
+        newTenant.id,
+        input.email,
+        input.name,
         passwordHash,
-        roleId: userRole.id,
-    }).returning();
+        userRole.id
+    );
 
     // Generate Token
     const accessToken = await sign({
@@ -74,7 +75,7 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResponse> 
  * Login an existing user (Database)
  */
 export const loginUser = async (input: LoginInput): Promise<AuthResponse> => {
-    const [user] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+    const user = await authRepo.findUserByEmail(input.email);
 
     if (!user) {
         throw new Error('Invalid credentials');
@@ -87,7 +88,7 @@ export const loginUser = async (input: LoginInput): Promise<AuthResponse> => {
     }
 
     // Get role name
-    const [role] = await db.select().from(roles).where(eq(roles.id, user.roleId)).limit(1);
+    const role = await authRepo.findRoleById(user.roleId);
     if (!role) {
         throw new Error('User role configuration error');
     }

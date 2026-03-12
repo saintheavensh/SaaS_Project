@@ -1,16 +1,17 @@
-import { eq } from 'drizzle-orm';
-import { db } from '../db.js';
-import { tenants } from '@my-saas-app/db';
 import { CreateTenantInput, UpdateTenantInput, TenantResponse } from './schemas.js';
+import { db } from '../db.js';
+import { TenantRepository } from './repository.js';
+
+const tenantRepo = new TenantRepository(db);
 
 /**
  * Create a new tenant
  */
 export const createTenant = async (input: CreateTenantInput): Promise<TenantResponse> => {
-    const [newTenant] = await db.insert(tenants).values({
+    const newTenant = await tenantRepo.create({
         name: input.name,
         slug: input.domain?.split('.')[0] || `tenant-${Math.random().toString(36).substring(7)}`,
-    }).returning();
+    });
 
     return {
         id: newTenant.id,
@@ -25,7 +26,7 @@ export const createTenant = async (input: CreateTenantInput): Promise<TenantResp
  * Get tenant by ID
  */
 export const getTenantById = async (id: string): Promise<TenantResponse | null> => {
-    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+    const tenant = await tenantRepo.findById(id);
 
     if (!tenant) return null;
 
@@ -42,13 +43,10 @@ export const getTenantById = async (id: string): Promise<TenantResponse | null> 
  * Update tenant
  */
 export const updateTenant = async (id: string, input: UpdateTenantInput): Promise<TenantResponse> => {
-    const [updatedTenant] = await db.update(tenants)
-        .set({
-            ...(input.name ? { name: input.name } : {}),
-            updatedAt: new Date(),
-        })
-        .where(eq(tenants.id, id))
-        .returning();
+    const updatedTenant = await tenantRepo.update(id, {
+        ...(input.name ? { name: input.name } : {}),
+        updatedAt: new Date(),
+    });
 
     if (!updatedTenant) {
         throw new Error('Tenant not found or update failed');
@@ -67,5 +65,5 @@ export const updateTenant = async (id: string, input: UpdateTenantInput): Promis
  * Delete tenant
  */
 export const deleteTenant = async (id: string): Promise<void> => {
-    await db.delete(tenants).where(eq(tenants.id, id));
+    await tenantRepo.delete(id);
 };

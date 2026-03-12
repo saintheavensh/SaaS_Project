@@ -1,7 +1,10 @@
-import { eq, InferSelectModel } from 'drizzle-orm';
+import { InferSelectModel } from 'drizzle-orm';
 import { db } from '../../core/db.js';
 import { permissions } from '@my-saas-app/db';
 import { CreatePermissionInput, UpdatePermissionInput, PermissionResponse } from './schemas.js';
+import { PermissionRepository } from './repository.js';
+
+const permissionRepo = new PermissionRepository(db);
 
 type PermissionTable = typeof permissions;
 
@@ -20,9 +23,7 @@ const mapToPermissionResponse = (permission: InferSelectModel<PermissionTable>):
  * Get all global permissions
  */
 export const getPermissionsService = async (): Promise<PermissionResponse[]> => {
-    const results = await db
-        .select()
-        .from(permissions);
+    const results = await permissionRepo.findAll();
 
     return results.map(mapToPermissionResponse);
 };
@@ -31,11 +32,7 @@ export const getPermissionsService = async (): Promise<PermissionResponse[]> => 
  * Get a single permission by ID
  */
 export const getPermissionByIdService = async (id: string): Promise<PermissionResponse | null> => {
-    const [result] = await db
-        .select()
-        .from(permissions)
-        .where(eq(permissions.id, id))
-        .limit(1);
+    const result = await permissionRepo.findById(id);
 
     if (!result) return null;
     return mapToPermissionResponse(result);
@@ -46,23 +43,13 @@ export const getPermissionByIdService = async (id: string): Promise<PermissionRe
  */
 export const createPermissionService = async (input: CreatePermissionInput): Promise<PermissionResponse> => {
     // Check if name already exists
-    const [existing] = await db
-        .select()
-        .from(permissions)
-        .where(eq(permissions.name, input.name))
-        .limit(1);
+    const existing = await permissionRepo.findByName(input.name);
 
     if (existing) {
         throw new Error(`Permission with name "${input.name}" already exists`);
     }
 
-    const [newPermission] = await db
-        .insert(permissions)
-        .values({
-            name: input.name,
-            description: input.description ?? null,
-        })
-        .returning();
+    const newPermission = await permissionRepo.create(input.name, input.description ?? null);
 
     return mapToPermissionResponse(newPermission);
 };
@@ -86,11 +73,7 @@ export const updatePermissionService = async (
     if (input.name !== undefined) updateData.name = input.name;
     if (input.description !== undefined) updateData.description = input.description ?? null;
 
-    const [updatedPermission] = await db
-        .update(permissions)
-        .set(updateData)
-        .where(eq(permissions.id, id))
-        .returning();
+    const updatedPermission = await permissionRepo.update(id, updateData);
 
     return mapToPermissionResponse(updatedPermission);
 };
@@ -99,7 +82,5 @@ export const updatePermissionService = async (
  * Delete a permission
  */
 export const deletePermissionService = async (id: string): Promise<void> => {
-    await db
-        .delete(permissions)
-        .where(eq(permissions.id, id));
+    await permissionRepo.delete(id);
 };
