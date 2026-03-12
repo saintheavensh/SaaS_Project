@@ -49,6 +49,7 @@ export const rolePermissions = pgTable('role_permissions', {
     return {
         pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
         roleIdx: index('role_permissions_role_idx').on(table.roleId),
+        permissionIdx: index('role_permissions_permission_idx').on(table.permissionId),
     };
 });
 
