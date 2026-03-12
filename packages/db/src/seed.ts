@@ -92,7 +92,7 @@ async function seed() {
 
         const hashedPw = '$2b$10$dfKhozMHc80A7bF9drmUxOuZbOUYNw2VAuSpmGW6c15D24tU3Jyau';
 
-        // 3. Super Admin User
+        // 5. Super Admin User
         await db.insert(schema.users).values({
             tenantId: systemTenant.id,
             email: 'admin@example.com',
@@ -105,7 +105,7 @@ async function seed() {
         });
         console.log('✅ Super Admin user initialized');
 
-        // 4. Regular User
+        // 6. Regular User
         await db.insert(schema.users).values({
             tenantId: tenantT1.id,
             email: 'user@example.com',
@@ -117,6 +117,25 @@ async function seed() {
             set: { passwordHash: hashedPw, name: 'Regular User' }
         });
         console.log('✅ Regular User initialized');
+
+        // 7. Populate user_roles (RBAC Join Table)
+        const [superAdminUser] = await db.select().from(schema.users).where(eq(schema.users.email, 'admin@example.com')).limit(1);
+        const [regularUser] = await db.select().from(schema.users).where(eq(schema.users.email, 'user@example.com')).limit(1);
+
+        if (superAdminUser) {
+            await db.insert(schema.userRoles).values({
+                userId: superAdminUser.id,
+                roleId: superAdminRole.id
+            }).onConflictDoNothing();
+        }
+
+        if (regularUser) {
+            await db.insert(schema.userRoles).values({
+                userId: regularUser.id,
+                roleId: userRole.id
+            }).onConflictDoNothing();
+        }
+        console.log('✅ User Roles initialized');
 
         console.log('✨ Seeding completed successfully!');
     } catch (error) {
