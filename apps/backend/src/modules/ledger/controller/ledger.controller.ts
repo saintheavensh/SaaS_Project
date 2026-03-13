@@ -5,6 +5,7 @@ import { LedgerRepository } from '../repository/ledger.repository.js';
 import { InventoryRepository } from '../../inventory/repository.js';
 import { MoveStockSchema, FinalizeOpnameSchema } from '../schemas/ledger.schemas.js';
 import { db } from '../../../core/db.js';
+import { InsufficientStockError } from '../../../core/errors/insufficient-stock.error.js';
 
 export class LedgerController {
     /**
@@ -21,16 +22,23 @@ export class LedgerController {
         const inventoryRepo = new InventoryRepository(db, tenantId);
         const service = new LedgerService(tenantId, ledgerRepo, inventoryRepo);
 
-        await service.logStockChange(
-            validated.productId,
-            validated.batchId,
-            validated.delta
-        );
+        try {
+            await service.logStockChange(
+                validated.productId,
+                validated.batchId,
+                validated.delta
+            );
 
-        return c.json({
-            success: true,
-            message: 'Stock movement recorded successfully',
-        });
+            return c.json({
+                success: true,
+                message: 'Stock movement recorded successfully',
+            });
+        } catch (error) {
+            if (error instanceof InsufficientStockError) {
+                return c.json({ success: false, message: error.message }, 409);
+            }
+            throw error;
+        }
     }
 
     /**
@@ -47,16 +55,23 @@ export class LedgerController {
         const inventoryRepo = new InventoryRepository(db, tenantId);
         const service = new LedgerService(tenantId, ledgerRepo, inventoryRepo);
 
-        await service.finalizeOpnameSession(
-            validated.productId,
-            validated.batchId,
-            validated.systemStock,
-            validated.countedStock
-        );
+        try {
+            await service.finalizeOpnameSession(
+                validated.productId,
+                validated.batchId,
+                validated.systemStock,
+                validated.countedStock
+            );
 
-        return c.json({
-            success: true,
-            message: 'Opname finalized successfully',
-        });
+            return c.json({
+                success: true,
+                message: 'Opname finalized successfully',
+            });
+        } catch (error) {
+            if (error instanceof InsufficientStockError) {
+                return c.json({ success: false, message: error.message }, 409);
+            }
+            throw error;
+        }
     }
 }

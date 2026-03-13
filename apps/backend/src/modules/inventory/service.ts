@@ -1,5 +1,6 @@
 import { InventoryRepository } from './repository.js';
 import { inventoryEmitter, InventoryEvent, InventoryEventPayload } from './events/index.js';
+import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
 
 /**
  * Service for Inventory business logic.
@@ -12,10 +13,10 @@ export class InventoryService {
      */
     async deductStock(productId: string, quantity: number) {
         // Business logic for deduction
-        const updated = await this.repository.updateStockDelta(productId, -quantity);
+        const result = await this.repository.updateStockDelta(productId, -quantity);
         
-        if (!updated) {
-            throw new Error(`InventoryService: Failed to deduct stock for product ${productId}`);
+        if (result.affectedRows === 0) {
+            throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
         }
 
         // Emit event
@@ -23,11 +24,11 @@ export class InventoryService {
             tenantId: this.tenantId,
             productId,
             delta: -quantity,
-            newStock: updated.stock,
+            newStock: result.newStock!,
         };
         inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
 
-        return updated;
+        return result;
     }
 
     /**
@@ -46,9 +47,9 @@ export class InventoryService {
         });
 
         // 2. Update Product Stock (Snapshot)
-        const updated = await this.repository.updateStockDelta(batchData.productId, parseFloat(batchData.initialStock));
+        const result = await this.repository.updateStockDelta(batchData.productId, parseFloat(batchData.initialStock));
 
-        if (!updated) {
+        if (result.affectedRows === 0) {
             throw new Error(`InventoryService: Failed to update stock for product ${batchData.productId}`);
         }
 
@@ -57,12 +58,12 @@ export class InventoryService {
             tenantId: this.tenantId,
             productId: batchData.productId,
             delta: parseFloat(batchData.initialStock),
-            newStock: updated.stock,
+            newStock: result.newStock!,
             metadata: { batchId: newBatch.id },
         };
         inventoryEmitter.emit(InventoryEvent.STOCK_UPDATED, payload);
 
-        return { batch: newBatch, product: updated };
+        return { batch: newBatch, productResult: result };
     }
 
     /**
