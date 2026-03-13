@@ -9,7 +9,7 @@ import { rolePermissionRouter } from './modules/role-permissions/index.js';
 import { userRoleRouter } from './modules/user-roles/index.js';
 import { inventoryRouter } from './modules/inventory/index.js';
 import { productsRouter } from './modules/products/index.js';
-
+import { ledgerRouter } from './modules/ledger/index.js';
 
 const router = new Hono<AppEnv>();
 
@@ -35,5 +35,8 @@ router.route('/inventory', inventoryRouter);
 
 // Products Module
 router.route('/products', productsRouter);
+
+// Ledger Module
+router.route('/ledger', ledgerRouter);
 
 export default router;
