@@ -1,5 +1,6 @@
 import { Database, TenantRepository } from '../../../core/database/tenant-repository-base.js';
 import { sales, salesItems, salesItemBatches } from '@my-saas-app/db';
+import { SaleStatus } from '../types/sales.types.js';
 
 /**
  * Repository for Sales operations, enforcing tenant isolation.
@@ -16,7 +17,7 @@ export class SalesRepository extends TenantRepository {
         data: {
             customerId?: string | null;
             totalAmount: number;
-            status: string;
+            status: SaleStatus;
         },
         tx?: Database
     ) {

@@ -1,5 +1,6 @@
 import { SalesRepository } from '../repository/sales.repository.js';
 import { CreateSaleInput } from '../schemas/sales.schemas.js';
+import { SaleStatus } from '../types/sales.types.js';
 import { db } from '../../../core/db.js';
 
 /**
@@ -16,17 +17,20 @@ export class SalesService {
      * Creates a sale transaction
      */
     async createSale(input: CreateSaleInput): Promise<string> {
-        // Calculate total amount from items (could also be taken from input, but calculating from items is safer)
-        const totalAmount = input.items.reduce((sum, item) => sum + (item.quantity * item.sellPrice), 0);
+        // Calculate total amount from items ensuring numeric consistency
+        const totalAmount = input.items.reduce(
+            (sum, item) => sum + Number(item.sellPrice) * item.quantity,
+            0
+        );
 
         let finalSaleId: string = '';
 
         await db.transaction(async (tx) => {
             // 1. Create sale record
             const newSale = await this.repository.createSale({
-                customerId: input.customerId,
+                customerId: input.customerId ?? null,
                 totalAmount,
-                status: 'COMPLETED',
+                status: 'COMPLETED' satisfies SaleStatus,
             }, tx);
 
             finalSaleId = newSale.id;
