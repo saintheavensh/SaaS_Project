@@ -20,7 +20,8 @@ export class InventoryController {
         const validated = DeductStockSchema.parse(body);
         
         const repository = new InventoryRepository(db, tenantId);
-        const service = new InventoryService(tenantId, repository);
+        const ledgerRepo = new LedgerRepository(db, tenantId);
+        const service = new InventoryService(tenantId, repository, ledgerRepo);
         
         try {
             const result = await service.deductStock(validated.productId, validated.quantity);

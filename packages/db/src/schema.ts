@@ -195,3 +195,4 @@ export const salesItemBatches = pgTable('sales_item_batches', {
         batchIdx: index('sales_item_batches_batch_idx').on(table.batchId),
     };
 });
+
