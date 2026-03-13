@@ -1,5 +1,4 @@
 import { InventoryRepository } from './repository.js';
-import { InventoryMovementRepository } from './repository/inventory-movement.repository.js';
 import { inventoryEmitter, InventoryEvent, InventoryEventPayload } from './events/index.js';
 import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
 import { LedgerRepository } from '../ledger/repository/ledger.repository.js';
@@ -13,31 +12,49 @@ export class InventoryService {
     constructor(
         private readonly tenantId: string,
         private readonly repository: InventoryRepository,
-        private readonly ledgerRepo?: LedgerRepository,
-        private readonly movementRepo?: InventoryMovementRepository
+        private readonly ledgerRepo?: LedgerRepository
     ) {}
 
     /**
      * Deduct stock for a specific product
      */
-    async deductStock(productId: string, quantity: number) {
+    async deductStock(productId: string, quantity: number, saleId?: string) {
         // Business logic for deduction
-        const result = await this.repository.updateStockDelta(productId, -quantity);
-        
-        if (result.affectedRows === 0) {
-            throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
-        }
+        let result: Awaited<ReturnType<InventoryRepository['updateStockDelta']>>;
+
+        await db.transaction(async (tx) => {
+            result = await this.repository.updateStockDelta(productId, -quantity, tx);
+            
+            if (result.affectedRows === 0) {
+                throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
+            }
+
+            // Record movement in ledger to fix audit leak
+            if (this.ledgerRepo) {
+                // For non-FIFO we don't have a specific batchId, but we must record the product change
+                // We'll use a null batchId for snapshot-only deductions or we could implement batch deduction here too.
+                // However, the rule is to ensure EVERY mutation is recorded.
+                await this.ledgerRepo.recordStockMovement(
+                    productId,
+                    '00000000-0000-0000-0000-000000000000', // Placeholder or Null if allowed
+                    -quantity,
+                    'SALE',
+                    saleId,
+                    tx
+                );
+            }
+        });
 
         // Emit event
         const payload: InventoryEventPayload = {
             tenantId: this.tenantId,
             productId,
             delta: -quantity,
-            newStock: result.newStock,
+            newStock: result!.newStock,
         };
         inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
 
-        return result;
+        return result!;
     }
 
     /**
@@ -85,17 +102,6 @@ export class InventoryService {
                     undefined,
                     tx
                 );
-            }
-
-            // 4. Record inventory movement for audit trail
-            if (this.movementRepo) {
-                await this.movementRepo.createMovement({
-                    productId: batchData.productId,
-                    batchId: newBatch!.id,
-                    type: 'PURCHASE',
-                    quantity: batchData.initialStock,
-                    referenceId: null,
-                }, tx);
             }
         });
 
@@ -172,17 +178,6 @@ export class InventoryService {
                     quantity: takeQty,
                     buyPrice: batch.buyPrice,
                 });
-
-                // 5b. Record inventory movement for audit trail
-                if (this.movementRepo) {
-                    await this.movementRepo.createMovement({
-                        productId,
-                        batchId: batch.id,
-                        type: 'SALE',
-                        quantity: -takeQty,
-                        referenceId: saleId,
-                    }, dbTx);
-                }
 
                 remainingQty -= takeQty;
             }
