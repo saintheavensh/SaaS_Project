@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, gt, asc } from 'drizzle-orm';
 import { Database, TenantRepository } from '../../core/database/tenant-repository-base.js';
 import { products, batches } from '@my-saas-app/db';
 
@@ -25,7 +25,7 @@ export class InventoryRepository extends TenantRepository {
             )
             .limit(1);
         
-        return product ? product.stock : '0';
+        return product ? product.stock : 0;
     }
 
     /**
@@ -112,4 +112,64 @@ export class InventoryRepository extends TenantRepository {
         
         return result.length;
     }
+
+    /**
+     * Get available batches for a product ordered by FIFO (oldest first).
+     * Only returns batches with currentStock > 0.
+     * Uses row locking (FOR UPDATE) to prevent concurrent transactions from
+     * reading the same batch stock before deduction.
+     */
+    async getAvailableBatchesFIFO(productId: string, tx?: Database) {
+        const client = tx || this.db;
+
+        return client
+            .select({
+                id: batches.id,
+                productId: batches.productId,
+                currentStock: batches.currentStock,
+                buyPrice: batches.buyPrice,
+                createdAt: batches.createdAt,
+            })
+            .from(batches)
+            .where(
+                and(
+                    this.tenantWhere(batches.tenantId),
+                    eq(batches.productId, productId),
+                    gt(batches.currentStock, 0)
+                )
+            )
+            .orderBy(asc(batches.createdAt))
+            .for('update');
+    }
+
+    /**
+     * Decrease batch stock by an exact quantity.
+     * Guarded in SQL: currentStock - quantity >= 0.
+     * Returns the updated batch record or null if stock insufficient.
+     */
+    async decreaseBatchStock(batchId: string, quantity: number, tx?: Database) {
+        const client = tx || this.db;
+
+        const [updated] = await client
+            .update(batches)
+            .set({
+                currentStock: sql`${batches.currentStock} - ${quantity}`,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    this.tenantWhere(batches.tenantId),
+                    eq(batches.id, batchId),
+                    sql`${batches.currentStock} - ${quantity} >= 0`
+                )
+            )
+            .returning({
+                id: batches.id,
+                currentStock: batches.currentStock,
+                buyPrice: batches.buyPrice,
+            });
+
+        return updated ?? null;
+    }
 }
+

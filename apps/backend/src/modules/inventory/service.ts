@@ -99,6 +99,100 @@ export class InventoryService {
     }
 
     /**
+     * Deduct stock using FIFO batch ordering.
+     * Consumes oldest batches first until the requested quantity is fulfilled.
+     * All operations are fully transactional — if any step fails, everything rolls back.
+     *
+     * Flow per batch:
+     *   1. Determine takeQty = min(batch.currentStock, remainingQty)
+     *   2. Decrease batch stock atomically
+     *   3. Record ledger movement (SALE)
+     *   4. Collect deduction detail for COGS tracking
+     *
+     * After FIFO loop: update product snapshot stock.
+     */
+    async deductStockFIFO(productId: string, quantity: number, saleId: string): Promise<BatchDeduction[]> {
+        if (quantity <= 0 || !Number.isInteger(quantity)) {
+            throw new Error('Quantity must be a positive integer');
+        }
+
+        if (!this.ledgerRepo) {
+            throw new Error('LedgerRepository is required for FIFO deduction');
+        }
+
+        const deductions: BatchDeduction[] = [];
+        let finalStock: number | null = null;
+
+        await db.transaction(async (tx) => {
+            // 1. Fetch available batches ordered oldest-first
+            const availableBatches = await this.repository.getAvailableBatchesFIFO(productId, tx);
+
+            let remainingQty = quantity;
+
+            // 2. FIFO deduction loop
+            for (const batch of availableBatches) {
+                if (remainingQty <= 0) break;
+
+                const takeQty = Math.min(batch.currentStock, remainingQty);
+
+                // 3. Decrease batch stock atomically
+                const updated = await this.repository.decreaseBatchStock(batch.id, takeQty, tx);
+                if (!updated) {
+                    // Concurrent modification — skip this batch, try next
+                    continue;
+                }
+
+                // 4. Record ledger movement
+                await this.ledgerRepo!.recordStockMovement(
+                    productId,
+                    batch.id,
+                    -takeQty,
+                    'SALE',
+                    saleId,
+                    tx
+                );
+
+                // 5. Collect deduction detail
+                deductions.push({
+                    batchId: batch.id,
+                    quantity: takeQty,
+                    buyPrice: batch.buyPrice,
+                });
+
+                remainingQty -= takeQty;
+            }
+
+            // 6. Guard: if we couldn't fulfill the entire quantity, roll back
+            if (remainingQty > 0) {
+                throw new InsufficientStockError(
+                    `Insufficient stock for product ${productId}. Short by ${remainingQty} units.`
+                );
+            }
+
+            // 7. Update product snapshot stock
+            const stockResult = await this.repository.updateStockDelta(productId, -quantity, tx);
+            if (stockResult.affectedRows === 0) {
+                throw new InsufficientStockError(
+                    `Failed to update snapshot stock for product ${productId}`
+                );
+            }
+            finalStock = stockResult.newStock;
+        });
+
+        // Emit event only after successful commit
+        const payload: InventoryEventPayload = {
+            tenantId: this.tenantId,
+            productId,
+            delta: -quantity,
+            newStock: finalStock,
+            metadata: { saleId, deductions },
+        };
+        inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
+
+        return deductions;
+    }
+
+    /**
      * Finalize an opname session
      */
     async finalizeOpnameSession(sessionId: string) {
@@ -112,4 +206,14 @@ export class InventoryService {
 
         return { success: true };
     }
+}
+
+/**
+ * Represents a single batch deduction in a FIFO sale.
+ * Used for COGS calculation and audit trail.
+ */
+export interface BatchDeduction {
+    batchId: string;
+    quantity: number;
+    buyPrice: string;
 }
