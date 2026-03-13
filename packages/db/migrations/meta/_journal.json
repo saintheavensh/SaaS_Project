@@ -8,6 +8,13 @@
       "when": 1773425097929,
       "tag": "0000_absurd_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1773431899623,
+      "tag": "0001_chubby_cyclops",
+      "breakpoints": true
     }
   ]
 }
