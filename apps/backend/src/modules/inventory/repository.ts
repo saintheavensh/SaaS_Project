@@ -29,11 +29,18 @@ export class InventoryRepository extends TenantRepository {
     }
 
     /**
-     * Update product stock by a delta
+     * Update product stock by a delta atomically.
+     * Prevents race conditions by checking in SQL if stock is sufficient.
      */
     async updateStockDelta(productId: string, delta: number, tx?: Database) {
         const client = tx || this.db;
-        const [updated] = await client
+        
+        // If delta is negative (deduction), ensure we don't go below 0
+        const condition = delta < 0 
+            ? sql`${products.stock}::numeric + ${delta} >= 0` 
+            : undefined;
+
+        const result = await client
             .update(products)
             .set({
                 stock: sql`${products.stock}::numeric + ${delta}`,
@@ -42,12 +49,16 @@ export class InventoryRepository extends TenantRepository {
             .where(
                 and(
                     this.tenantWhere(products.tenantId),
-                    eq(products.id, productId)
+                    eq(products.id, productId),
+                    condition
                 )
             )
-            .returning();
+            .returning({ id: products.id, stock: products.stock });
         
-        return updated;
+        return {
+            affectedRows: result.length,
+            newStock: result.length > 0 ? result[0].stock : null
+        };
     }
 
     /**
@@ -69,5 +80,35 @@ export class InventoryRepository extends TenantRepository {
             .returning();
         
         return newBatch;
+    }
+
+    /**
+     * Update batch currentStock by a delta atomically.
+     * Prevents race conditions by checking in SQL if stock is sufficient.
+     */
+    async updateBatchStockDelta(batchId: string, delta: number, tx?: Database) {
+        const client = tx || this.db;
+        
+        // Ensure we don't go below 0 for deductions
+        const condition = delta < 0 
+            ? sql`${batches.currentStock}::numeric + ${delta} >= 0` 
+            : undefined;
+
+        const result = await client
+            .update(batches)
+            .set({
+                currentStock: sql`${batches.currentStock}::numeric + ${delta}`,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    this.tenantWhere(batches.tenantId),
+                    eq(batches.id, batchId),
+                    condition
+                )
+            )
+            .returning({ id: batches.id });
+        
+        return result.length;
     }
 }

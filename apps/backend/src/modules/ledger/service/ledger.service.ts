@@ -2,6 +2,7 @@ import { LedgerRepository } from '../repository/ledger.repository.js';
 import { InventoryRepository } from '../../inventory/repository.js';
 import { ledgerEmitter, LedgerEvent, LedgerEventPayload } from '../events/index.js';
 import { db } from '../../../core/db.js';
+import { InsufficientStockError } from '../../../core/errors/insufficient-stock.error.js';
 
 export class LedgerService {
     constructor(
@@ -16,10 +17,19 @@ export class LedgerService {
      */
     async logStockChange(productId: string, batchId: string, delta: number) {
         await db.transaction(async (tx) => {
-            // 1. update inventory stock
-            await this.inventoryRepo.updateStockDelta(productId, delta, tx);
+            // 1. update batch stock
+            const batchUpdated = await this.inventoryRepo.updateBatchStockDelta(batchId, delta, tx);
+            if (batchUpdated === 0) {
+                throw new InsufficientStockError(`Insufficient stock for batch ${batchId}`);
+            }
 
-            // 2. insert ledger movement record
+            // 2. update inventory stock
+            const productUpdated = await this.inventoryRepo.updateStockDelta(productId, delta, tx);
+            if (productUpdated.affectedRows === 0) {
+                throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
+            }
+
+            // 3. insert ledger movement record
             await this.ledgerRepo.recordStockMovement(
                 productId,
                 batchId,
@@ -50,10 +60,19 @@ export class LedgerService {
 
         if (delta !== 0) {
             await db.transaction(async (tx) => {
-                // 1. update inventory stock
-                await this.inventoryRepo.updateStockDelta(productId, delta, tx);
+                // 1. update batch stock
+                const batchUpdated = await this.inventoryRepo.updateBatchStockDelta(batchId, delta, tx);
+                if (batchUpdated === 0) {
+                    throw new InsufficientStockError(`Insufficient stock for batch ${batchId}`);
+                }
 
-                // 2. insert ledger movement record
+                // 2. update inventory stock
+                const productUpdated = await this.inventoryRepo.updateStockDelta(productId, delta, tx);
+                if (productUpdated.affectedRows === 0) {
+                    throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
+                }
+
+                // 3. insert ledger movement record
                 await this.ledgerRepo.recordStockMovement(
                     productId,
                     batchId,
@@ -76,4 +95,5 @@ export class LedgerService {
         ledgerEmitter.emit(LedgerEvent.OPNAME_FINALIZED, payload);
     }
 }
+
 
