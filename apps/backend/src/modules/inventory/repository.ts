@@ -31,8 +31,9 @@ export class InventoryRepository extends TenantRepository {
     /**
      * Update product stock by a delta
      */
-    async updateStockDelta(productId: string, delta: number) {
-        const [updated] = await this.db
+    async updateStockDelta(productId: string, delta: number, tx?: Database) {
+        const client = tx || this.db;
+        const [updated] = await client
             .update(products)
             .set({
                 stock: sql`${products.stock}::numeric + ${delta}`,

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, text, index, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, index, primaryKey, integer } from 'drizzle-orm/pg-core';
 
 /**
  * Tenants table - Root of multi-tenancy
@@ -120,5 +120,26 @@ export const batches = pgTable('batches', {
     return {
         tenantIdx: index('batches_tenant_idx').on(table.tenantId),
         productTenantIdx: index('batches_product_tenant_idx').on(table.tenantId, table.productId),
+    };
+});
+
+/**
+ * Stock Movements table - Append-only ledger scoped by tenant_id
+ */
+export const stockMovements = pgTable('stock_movements', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
+    productId: uuid('product_id').references(() => products.id).notNull(),
+    batchId: uuid('batch_id').references(() => batches.id).notNull(),
+    movementType: text('movement_type').notNull(), // e.g., PURCHASE, SALE, ADJUSTMENT, OPNAME
+    delta: integer('delta').notNull(), // positive = added, negative = removed
+    referenceId: uuid('reference_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+    return {
+        tenantIdx: index('stock_movements_tenant_idx').on(table.tenantId),
+        productIdx: index('stock_movements_product_idx').on(table.productId),
+        batchIdx: index('stock_movements_batch_idx').on(table.batchId),
+        createdAtIdx: index('stock_movements_created_at_idx').on(table.createdAt),
     };
 });
