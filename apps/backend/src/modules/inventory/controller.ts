@@ -4,6 +4,7 @@ import { InventoryRepository } from './repository.js';
 import { db } from '../../core/db.js';
 import { DeductStockSchema, AddStockSchema, FinalizeOpnameSchema } from './schemas/inventory.schemas.js';
 import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
+import { LedgerRepository } from '../ledger/repository/ledger.repository.js';
 
 /**
  * Controller for Inventory endpoints
@@ -46,7 +47,8 @@ export class InventoryController {
         const validated = AddStockSchema.parse(body);
         
         const repository = new InventoryRepository(db, tenantId);
-        const service = new InventoryService(tenantId, repository);
+        const ledgerRepo = new LedgerRepository(db, tenantId);
+        const service = new InventoryService(tenantId, repository, ledgerRepo);
         
         const result = await service.addStockFromPurchase(validated);
         

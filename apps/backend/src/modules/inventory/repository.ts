@@ -70,8 +70,9 @@ export class InventoryRepository extends TenantRepository {
         sellPrice: string;
         initialStock: number;
         currentStock: number;
-    }) {
-        const [newBatch] = await this.db
+    }, tx?: Database) {
+        const client = tx || this.db;
+        const [newBatch] = await client
             .insert(batches)
             .values({
                 tenantId: this.tenantId,
