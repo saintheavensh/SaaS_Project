@@ -12,6 +12,6 @@ export interface InventoryEventPayload {
     tenantId: string;
     productId: string;
     delta?: number;
-    newStock?: string;
-    metadata?: any;
+    newStock?: number | null;
+    metadata?: Record<string, unknown>;
 }

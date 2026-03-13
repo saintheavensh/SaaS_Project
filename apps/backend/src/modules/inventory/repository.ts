@@ -37,13 +37,13 @@ export class InventoryRepository extends TenantRepository {
         
         // If delta is negative (deduction), ensure we don't go below 0
         const condition = delta < 0 
-            ? sql`${products.stock}::numeric + ${delta} >= 0` 
+            ? sql`${products.stock} + ${delta} >= 0` 
             : undefined;
 
         const result = await client
             .update(products)
             .set({
-                stock: sql`${products.stock}::numeric + ${delta}`,
+                stock: sql`${products.stock} + ${delta}`,
                 updatedAt: new Date(),
             })
             .where(
@@ -68,8 +68,8 @@ export class InventoryRepository extends TenantRepository {
         productId: string;
         buyPrice: string;
         sellPrice: string;
-        initialStock: string;
-        currentStock: string;
+        initialStock: number;
+        currentStock: number;
     }) {
         const [newBatch] = await this.db
             .insert(batches)
@@ -91,13 +91,13 @@ export class InventoryRepository extends TenantRepository {
         
         // Ensure we don't go below 0 for deductions
         const condition = delta < 0 
-            ? sql`${batches.currentStock}::numeric + ${delta} >= 0` 
+            ? sql`${batches.currentStock} + ${delta} >= 0` 
             : undefined;
 
         const result = await client
             .update(batches)
             .set({
-                currentStock: sql`${batches.currentStock}::numeric + ${delta}`,
+                currentStock: sql`${batches.currentStock} + ${delta}`,
                 updatedAt: new Date(),
             })
             .where(

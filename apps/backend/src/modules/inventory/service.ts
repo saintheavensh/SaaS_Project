@@ -24,7 +24,7 @@ export class InventoryService {
             tenantId: this.tenantId,
             productId,
             delta: -quantity,
-            newStock: result.newStock!,
+            newStock: result.newStock,
         };
         inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
 
@@ -38,7 +38,7 @@ export class InventoryService {
         productId: string;
         buyPrice: string;
         sellPrice: string;
-        initialStock: string;
+        initialStock: number;
     }) {
         // 1. Insert Batch
         const newBatch = await this.repository.insertBatch({
@@ -46,8 +46,8 @@ export class InventoryService {
             currentStock: batchData.initialStock,
         });
 
-        // 2. Update Product Stock (Snapshot)
-        const result = await this.repository.updateStockDelta(batchData.productId, parseFloat(batchData.initialStock));
+        // 2. Update Product Stock (Snapshot) — no parseFloat needed, already numeric
+        const result = await this.repository.updateStockDelta(batchData.productId, batchData.initialStock);
 
         if (result.affectedRows === 0) {
             throw new Error(`InventoryService: Failed to update stock for product ${batchData.productId}`);
@@ -57,8 +57,8 @@ export class InventoryService {
         const payload: InventoryEventPayload = {
             tenantId: this.tenantId,
             productId: batchData.productId,
-            delta: parseFloat(batchData.initialStock),
-            newStock: result.newStock!,
+            delta: batchData.initialStock,
+            newStock: result.newStock,
             metadata: { batchId: newBatch.id },
         };
         inventoryEmitter.emit(InventoryEvent.STOCK_UPDATED, payload);

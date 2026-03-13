@@ -16,7 +16,7 @@ export const initInventoryConsumers = () => {
 
     // 2. Low Stock Alert Consumer (Placeholder)
     inventoryEmitter.on(InventoryEvent.STOCK_DEDUCTED, (payload: InventoryEventPayload) => {
-        if (payload.newStock && parseFloat(payload.newStock) < 10) {
+        if (payload.newStock != null && payload.newStock < 10) {
             console.warn(`[Inventory][Alert] LOW_STOCK: Tenant ${payload.tenantId}, Product ${payload.productId} is below threshold! current: ${payload.newStock}`);
         }
     });
