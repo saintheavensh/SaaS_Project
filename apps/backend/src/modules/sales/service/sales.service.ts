@@ -1,6 +1,7 @@
 import { SalesRepository } from '../repository/sales.repository.js';
 import { CreateSaleInput } from '../schemas/sales.schemas.js';
 import { SaleStatus } from '../types/sales.types.js';
+import { InventoryService } from '../../inventory/service.js';
 import { db } from '../../../core/db.js';
 
 /**
@@ -10,7 +11,8 @@ import { db } from '../../../core/db.js';
 export class SalesService {
     constructor(
         private readonly tenantId: string,
-        private readonly repository: SalesRepository
+        private readonly repository: SalesRepository,
+        private readonly inventoryService: InventoryService
     ) {}
 
     /**
@@ -37,7 +39,15 @@ export class SalesService {
 
             // 2. Loop through items
             for (const item of input.items) {
-                // 3. Create sale_items
+                // a) Call FIFO deduction
+                const batches = await this.inventoryService.deductStockFIFO(
+                    item.productId,
+                    item.quantity,
+                    newSale.id,
+                    tx
+                );
+
+                // b) Create sale item record
                 const saleItem = await this.repository.createSaleItem({
                     saleId: newSale.id,
                     productId: item.productId,
@@ -45,7 +55,15 @@ export class SalesService {
                     sellPrice: item.sellPrice,
                 }, tx);
 
-                // FIFO deduction will be integrated later
+                // c) Record each consumed batch
+                for (const batch of batches) {
+                    await this.repository.createSaleItemBatch({
+                        saleItemId: saleItem.id,
+                        batchId: batch.batchId,
+                        quantity: batch.quantity,
+                        buyPrice: batch.buyPrice,
+                    }, tx);
+                }
             }
         });
 

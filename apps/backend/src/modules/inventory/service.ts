@@ -3,6 +3,7 @@ import { inventoryEmitter, InventoryEvent, InventoryEventPayload } from './event
 import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
 import { LedgerRepository } from '../ledger/repository/ledger.repository.js';
 import { db } from '../../core/db.js';
+import { Database } from '../../core/database/tenant-repository-base.js';
 
 /**
  * Service for Inventory business logic.
@@ -111,7 +112,7 @@ export class InventoryService {
      *
      * After FIFO loop: update product snapshot stock.
      */
-    async deductStockFIFO(productId: string, quantity: number, saleId: string): Promise<BatchDeduction[]> {
+    async deductStockFIFO(productId: string, quantity: number, saleId: string, tx?: Database): Promise<BatchDeduction[]> {
         if (quantity <= 0 || !Number.isInteger(quantity)) {
             throw new Error('Quantity must be a positive integer');
         }
@@ -123,9 +124,9 @@ export class InventoryService {
         const deductions: BatchDeduction[] = [];
         let finalStock: number | null = null;
 
-        await db.transaction(async (tx) => {
+        const operation = async (dbTx: Database) => {
             // 1. Fetch available batches ordered oldest-first
-            const availableBatches = await this.repository.getAvailableBatchesFIFO(productId, tx);
+            const availableBatches = await this.repository.getAvailableBatchesFIFO(productId, dbTx);
 
             let remainingQty = quantity;
 
@@ -136,7 +137,7 @@ export class InventoryService {
                 const takeQty = Math.min(batch.currentStock, remainingQty);
 
                 // 3. Decrease batch stock atomically
-                const updated = await this.repository.decreaseBatchStock(batch.id, takeQty, tx);
+                const updated = await this.repository.decreaseBatchStock(batch.id, takeQty, dbTx);
                 if (!updated) {
                     // Concurrent modification — skip this batch, try next
                     continue;
@@ -149,7 +150,7 @@ export class InventoryService {
                     -takeQty,
                     'SALE',
                     saleId,
-                    tx
+                    dbTx
                 );
 
                 // 5. Collect deduction detail
@@ -170,14 +171,20 @@ export class InventoryService {
             }
 
             // 7. Update product snapshot stock
-            const stockResult = await this.repository.updateStockDelta(productId, -quantity, tx);
+            const stockResult = await this.repository.updateStockDelta(productId, -quantity, dbTx);
             if (stockResult.affectedRows === 0) {
                 throw new InsufficientStockError(
                     `Failed to update snapshot stock for product ${productId}`
                 );
             }
             finalStock = stockResult.newStock;
-        });
+        };
+
+        if (tx) {
+            await operation(tx);
+        } else {
+            await db.transaction(operation);
+        }
 
         // Emit event only after successful commit
         const payload: InventoryEventPayload = {
