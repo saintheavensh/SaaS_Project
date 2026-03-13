@@ -8,7 +8,9 @@
         "build": "tsc",
         "dev": "tsc --watch",
         "typecheck": "tsc --build",
-        "test": "vitest run --exclude dist"
+        "test": "vitest run --exclude dist",
+        "db:generate": "drizzle-kit generate:pg",
+        "db:migrate": "tsx src/migrate.ts"
     },
     "dependencies": {
         "@my-saas-app/types": "workspace:^",
