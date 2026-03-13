@@ -1,4 +1,5 @@
 import { InventoryRepository } from './repository.js';
+import { InventoryMovementRepository } from './repository/inventory-movement.repository.js';
 import { inventoryEmitter, InventoryEvent, InventoryEventPayload } from './events/index.js';
 import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
 import { LedgerRepository } from '../ledger/repository/ledger.repository.js';
@@ -12,7 +13,8 @@ export class InventoryService {
     constructor(
         private readonly tenantId: string,
         private readonly repository: InventoryRepository,
-        private readonly ledgerRepo?: LedgerRepository
+        private readonly ledgerRepo?: LedgerRepository,
+        private readonly movementRepo?: InventoryMovementRepository
     ) {}
 
     /**
@@ -83,6 +85,17 @@ export class InventoryService {
                     undefined,
                     tx
                 );
+            }
+
+            // 4. Record inventory movement for audit trail
+            if (this.movementRepo) {
+                await this.movementRepo.createMovement({
+                    productId: batchData.productId,
+                    batchId: newBatch!.id,
+                    type: 'PURCHASE',
+                    quantity: batchData.initialStock,
+                    referenceId: null,
+                }, tx);
             }
         });
 
@@ -159,6 +172,17 @@ export class InventoryService {
                     quantity: takeQty,
                     buyPrice: batch.buyPrice,
                 });
+
+                // 5b. Record inventory movement for audit trail
+                if (this.movementRepo) {
+                    await this.movementRepo.createMovement({
+                        productId,
+                        batchId: batch.id,
+                        type: 'SALE',
+                        quantity: -takeQty,
+                        referenceId: saleId,
+                    }, dbTx);
+                }
 
                 remainingQty -= takeQty;
             }

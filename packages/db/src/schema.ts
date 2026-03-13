@@ -195,3 +195,26 @@ export const salesItemBatches = pgTable('sales_item_batches', {
         batchIdx: index('sales_item_batches_batch_idx').on(table.batchId),
     };
 });
+
+/**
+ * Inventory Movements table - Central audit trail for all stock changes.
+ * Append-only. Scoped by tenant_id.
+ */
+export const inventoryMovements = pgTable('inventory_movements', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
+    productId: uuid('product_id').references(() => products.id).notNull(),
+    batchId: uuid('batch_id').references(() => batches.id),
+    type: text('type').notNull(), // PURCHASE | SALE | ADJUSTMENT
+    quantity: integer('quantity').notNull(), // positive = increase, negative = decrease
+    referenceId: uuid('reference_id'), // purchaseId, saleId, or adjustmentId
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+    return {
+        tenantIdx: index('inventory_movements_tenant_idx').on(table.tenantId),
+        productIdx: index('inventory_movements_product_idx').on(table.productId),
+        typeIdx: index('inventory_movements_type_idx').on(table.type),
+        referenceIdx: index('inventory_movements_reference_idx').on(table.referenceId),
+        createdAtIdx: index('inventory_movements_created_at_idx').on(table.createdAt),
+    };
+});
