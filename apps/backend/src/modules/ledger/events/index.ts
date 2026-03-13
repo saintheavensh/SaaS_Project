@@ -15,3 +15,8 @@ export interface LedgerEventPayload {
 
 class LedgerEmitter extends EventEmitter {}
 export const ledgerEmitter = new LedgerEmitter();
+
+// Import consumers after emitter is defined to avoid circular dependency
+import { initLedgerConsumers } from './consumers.js';
+initLedgerConsumers();
+
