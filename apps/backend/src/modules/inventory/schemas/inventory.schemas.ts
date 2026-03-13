@@ -15,7 +15,7 @@ export const AddStockSchema = z.object({
     productId: z.string().uuid('Invalid Product ID'),
     buyPrice: z.string().min(1, 'Buy price is required'),
     sellPrice: z.string().min(1, 'Sell price is required'),
-    initialStock: z.string().min(1, 'Initial stock is required'),
+    initialStock: z.number().int().positive('Initial stock must be a positive integer'),
 });
 
 /**

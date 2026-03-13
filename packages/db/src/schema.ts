@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, text, index, primaryKey, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, index, primaryKey, integer, numeric } from 'drizzle-orm/pg-core';
 
 /**
  * Tenants table - Root of multi-tenancy
@@ -92,7 +92,7 @@ export const products = pgTable('products', {
     tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
-    stock: text('stock').default('0').notNull(), // Snapshot stock
+    stock: integer('stock').default(0).notNull(), // Snapshot stock
     categoryId: uuid('category_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -110,10 +110,10 @@ export const batches = pgTable('batches', {
     id: uuid('id').defaultRandom().primaryKey(),
     tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
     productId: uuid('product_id').references(() => products.id).notNull(),
-    buyPrice: text('buy_price').notNull(),
-    sellPrice: text('sell_price').notNull(),
-    initialStock: text('initial_stock').notNull(),
-    currentStock: text('current_stock').notNull(),
+    buyPrice: numeric('buy_price').notNull(),
+    sellPrice: numeric('sell_price').notNull(),
+    initialStock: integer('initial_stock').notNull(),
+    currentStock: integer('current_stock').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => {
