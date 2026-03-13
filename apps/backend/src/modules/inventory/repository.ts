@@ -116,6 +116,8 @@ export class InventoryRepository extends TenantRepository {
     /**
      * Get available batches for a product ordered by FIFO (oldest first).
      * Only returns batches with currentStock > 0.
+     * Uses row locking (FOR UPDATE) to prevent concurrent transactions from
+     * reading the same batch stock before deduction.
      */
     async getAvailableBatchesFIFO(productId: string, tx?: Database) {
         const client = tx || this.db;
@@ -136,7 +138,8 @@ export class InventoryRepository extends TenantRepository {
                     gt(batches.currentStock, 0)
                 )
             )
-            .orderBy(asc(batches.createdAt));
+            .orderBy(asc(batches.createdAt))
+            .for('update');
     }
 
     /**

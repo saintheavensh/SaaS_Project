@@ -112,11 +112,16 @@ export class InventoryService {
      * After FIFO loop: update product snapshot stock.
      */
     async deductStockFIFO(productId: string, quantity: number, saleId: string): Promise<BatchDeduction[]> {
+        if (quantity <= 0 || !Number.isInteger(quantity)) {
+            throw new Error('Quantity must be a positive integer');
+        }
+
         if (!this.ledgerRepo) {
             throw new Error('LedgerRepository is required for FIFO deduction');
         }
 
         const deductions: BatchDeduction[] = [];
+        let finalStock: number | null = null;
 
         await db.transaction(async (tx) => {
             // 1. Fetch available batches ordered oldest-first
@@ -171,6 +176,7 @@ export class InventoryService {
                     `Failed to update snapshot stock for product ${productId}`
                 );
             }
+            finalStock = stockResult.newStock;
         });
 
         // Emit event only after successful commit
@@ -178,6 +184,7 @@ export class InventoryService {
             tenantId: this.tenantId,
             productId,
             delta: -quantity,
+            newStock: finalStock,
             metadata: { saleId, deductions },
         };
         inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
