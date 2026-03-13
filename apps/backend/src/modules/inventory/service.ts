@@ -1,12 +1,18 @@
 import { InventoryRepository } from './repository.js';
 import { inventoryEmitter, InventoryEvent, InventoryEventPayload } from './events/index.js';
 import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
+import { LedgerRepository } from '../ledger/repository/ledger.repository.js';
+import { db } from '../../core/db.js';
 
 /**
  * Service for Inventory business logic.
  */
 export class InventoryService {
-    constructor(private readonly tenantId: string, private readonly repository: InventoryRepository) {}
+    constructor(
+        private readonly tenantId: string,
+        private readonly repository: InventoryRepository,
+        private readonly ledgerRepo?: LedgerRepository
+    ) {}
 
     /**
      * Deduct stock for a specific product
@@ -32,7 +38,12 @@ export class InventoryService {
     }
 
     /**
-     * Add stock from a new purchase batch
+     * Add stock from a new purchase batch.
+     * All operations are wrapped in a single transaction:
+     *   1. Insert batch
+     *   2. Update product snapshot stock
+     *   3. Record ledger movement
+     * If any step fails, the entire transaction rolls back.
      */
     async addStockFromPurchase(batchData: {
         productId: string;
@@ -40,30 +51,51 @@ export class InventoryService {
         sellPrice: string;
         initialStock: number;
     }) {
-        // 1. Insert Batch
-        const newBatch = await this.repository.insertBatch({
-            ...batchData,
-            currentStock: batchData.initialStock,
+        let newBatch: Awaited<ReturnType<InventoryRepository['insertBatch']>>;
+        let stockResult: Awaited<ReturnType<InventoryRepository['updateStockDelta']>>;
+
+        await db.transaction(async (tx) => {
+            // 1. Insert Batch
+            newBatch = await this.repository.insertBatch({
+                ...batchData,
+                currentStock: batchData.initialStock,
+            }, tx);
+
+            // 2. Update Product Stock (Snapshot)
+            stockResult = await this.repository.updateStockDelta(
+                batchData.productId,
+                batchData.initialStock,
+                tx
+            );
+
+            if (stockResult.affectedRows === 0) {
+                throw new Error(`InventoryService: Failed to update stock for product ${batchData.productId}`);
+            }
+
+            // 3. Record ledger movement inside same transaction
+            if (this.ledgerRepo) {
+                await this.ledgerRepo.recordStockMovement(
+                    batchData.productId,
+                    newBatch!.id,
+                    batchData.initialStock,
+                    'PURCHASE',
+                    undefined,
+                    tx
+                );
+            }
         });
 
-        // 2. Update Product Stock (Snapshot) — no parseFloat needed, already numeric
-        const result = await this.repository.updateStockDelta(batchData.productId, batchData.initialStock);
-
-        if (result.affectedRows === 0) {
-            throw new Error(`InventoryService: Failed to update stock for product ${batchData.productId}`);
-        }
-
-        // Emit event
+        // Emit event only after transaction succeeds
         const payload: InventoryEventPayload = {
             tenantId: this.tenantId,
             productId: batchData.productId,
             delta: batchData.initialStock,
-            newStock: result.newStock,
-            metadata: { batchId: newBatch.id },
+            newStock: stockResult!.newStock,
+            metadata: { batchId: newBatch!.id },
         };
         inventoryEmitter.emit(InventoryEvent.STOCK_UPDATED, payload);
 
-        return { batch: newBatch, productResult: result };
+        return { batch: newBatch!, productResult: stockResult! };
     }
 
     /**
