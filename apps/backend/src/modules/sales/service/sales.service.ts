@@ -61,7 +61,35 @@ export class SalesService {
 
             finalSaleId = newSale.id;
 
-            // TODO: Step 5 - Create items and batches
+            // Step 5: Perform actual deduction and create items/batches
+            for (const preview of itemBatchPreviews) {
+                // a) Actual FIFO deduction
+                const batches = await this.inventoryService.deductStockFIFO(
+                    preview.item.productId,
+                    preview.item.quantity,
+                    newSale.id,
+                    tx
+                );
+
+                // b) Create sale item record
+                const saleItem = await this.repository.createSaleItem({
+                    saleId: newSale.id,
+                    productId: preview.item.productId,
+                    quantity: preview.item.quantity,
+                    sellPrice: preview.item.sellPrice,
+                }, tx);
+
+                // c) Record each consumed batch
+                for (const batch of batches) {
+                    await this.repository.createSaleItemBatch({
+                        saleItemId: saleItem.id,
+                        batchId: batch.batchId,
+                        quantity: batch.quantityTaken,
+                        sellPrice: preview.item.sellPrice,
+                        costPrice: batch.buyPrice,
+                    }, tx);
+                }
+            }
         });
 
         return finalSaleId;
