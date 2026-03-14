@@ -1,4 +1,4 @@
-import { eq, and, sql, sum, count } from 'drizzle-orm';
+import { eq, and, sql, sum, count, gte, lte } from 'drizzle-orm';
 import { sales, salesItems, salesItemBatches, salesSummaries } from '@my-saas-app/db';
 import { TenantRepository, Database } from '../../../core/database/tenant-repository-base.js';
 
@@ -58,8 +58,8 @@ export class SalesSummaryRepository extends TenantRepository {
             .where(
                 and(
                     eq(sales.tenantId, this.tenantId),
-                    sql`${sales.createdAt} >= ${startDate}`,
-                    sql`${sales.createdAt} <= ${endDate}`
+                    gte(sales.createdAt, startDate),
+                    lte(sales.createdAt, endDate)
                 )
             );
 
@@ -72,8 +72,8 @@ export class SalesSummaryRepository extends TenantRepository {
             .where(
                 and(
                     eq(salesItemBatches.tenantId, this.tenantId),
-                    sql`${salesItemBatches.createdAt} >= ${startDate}`,
-                    sql`${salesItemBatches.createdAt} <= ${endDate}`
+                    gte(salesItemBatches.createdAt, startDate),
+                    lte(salesItemBatches.createdAt, endDate)
                 )
             );
 
@@ -104,8 +104,8 @@ export class SalesSummaryRepository extends TenantRepository {
             .where(
                 and(
                     eq(salesItems.tenantId, this.tenantId),
-                    sql`${salesItems.createdAt} >= ${startDate}`,
-                    sql`${salesItems.createdAt} <= ${endDate}`
+                    gte(salesItems.createdAt, startDate),
+                    lte(salesItems.createdAt, endDate)
                 )
             )
             .groupBy(salesItems.productId);
