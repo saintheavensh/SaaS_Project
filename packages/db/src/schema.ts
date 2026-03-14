@@ -152,6 +152,9 @@ export const sales = pgTable('sales', {
     tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
     customerId: uuid('customer_id'),
     totalAmount: numeric('total_amount').notNull(),
+    revenue: numeric('revenue').notNull(),
+    cogs: numeric('cogs').notNull(),
+    grossProfit: numeric('gross_profit').notNull(),
     status: text('status').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => {

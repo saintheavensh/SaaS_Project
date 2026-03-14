@@ -17,6 +17,9 @@ export class SalesRepository extends TenantRepository {
         data: {
             customerId?: string | null;
             totalAmount: number;
+            revenue: number;
+            cogs: number;
+            grossProfit: number;
             status: SaleStatus;
         },
         tx?: Database
@@ -28,7 +31,10 @@ export class SalesRepository extends TenantRepository {
             .values({
                 tenantId: this.tenantId,
                 customerId: data.customerId ?? null,
-                totalAmount: data.totalAmount.toString(), // numeric maps to string in Postgres
+                totalAmount: data.totalAmount.toString(),
+                revenue: data.revenue.toString(),
+                cogs: data.cogs.toString(),
+                grossProfit: data.grossProfit.toString(),
                 status: data.status,
             })
             .returning();
