@@ -177,7 +177,7 @@ export class InventoryService {
                 // 5. Collect deduction detail
                 deductions.push({
                     batchId: batch.id,
-                    quantityTaken: takeQty,
+                    quantity: takeQty,
                     buyPrice: batch.buyPrice,
                 });
 
@@ -246,6 +246,6 @@ export class InventoryService {
  */
 export interface BatchDeduction {
     batchId: string;
-    quantityTaken: number;
+    quantity: number;
     buyPrice: string;
 }
