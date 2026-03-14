@@ -79,7 +79,7 @@ export class SalesRepository extends TenantRepository {
             batchId: string;
             quantity: number;
             sellPrice: number;
-            costPrice: string;
+            buyPrice: string;
         },
         tx?: Database
     ) {
@@ -93,7 +93,7 @@ export class SalesRepository extends TenantRepository {
                 batchId: data.batchId,
                 quantity: data.quantity,
                 sellPrice: data.sellPrice.toString(),
-                costPrice: data.costPrice,
+                buyPrice: data.buyPrice,
             })
             .returning();
 
