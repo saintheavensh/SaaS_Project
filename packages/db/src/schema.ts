@@ -200,3 +200,22 @@ export const salesItemBatches = pgTable('sales_item_batches', {
     };
 });
 
+/**
+ * Sales Summaries table - Cached daily metrics per tenant.
+ */
+export const salesSummaries = pgTable('sales_summaries', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
+    entryDate: timestamp('entry_date').notNull(), // Daily entry
+    totalRevenue: numeric('total_revenue').default('0').notNull(),
+    totalCogs: numeric('total_cogs').default('0').notNull(),
+    totalGrossProfit: numeric('total_gross_profit').default('0').notNull(),
+    salesCount: integer('sales_count').default(0).notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+    return {
+        tenantDateIdx: index('sales_summary_tenant_date_idx').on(table.tenantId, table.entryDate),
+    };
+});
+
+
