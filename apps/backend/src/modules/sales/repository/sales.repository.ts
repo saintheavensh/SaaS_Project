@@ -16,10 +16,10 @@ export class SalesRepository extends TenantRepository {
     async createSale(
         data: {
             customerId?: string | null;
-            totalAmount: number;
-            revenue: number;
-            cogs: number;
-            grossProfit: number;
+            totalAmount: string;
+            revenue: string;
+            cogs: string;
+            grossProfit: string;
             status: SaleStatus;
         },
         tx?: Database
@@ -31,10 +31,10 @@ export class SalesRepository extends TenantRepository {
             .values({
                 tenantId: this.tenantId,
                 customerId: data.customerId ?? null,
-                totalAmount: data.totalAmount.toString(),
-                revenue: data.revenue.toString(),
-                cogs: data.cogs.toString(),
-                grossProfit: data.grossProfit.toString(),
+                totalAmount: data.totalAmount,
+                revenue: data.revenue,
+                cogs: data.cogs,
+                grossProfit: data.grossProfit,
                 status: data.status,
             })
             .returning();
@@ -50,7 +50,7 @@ export class SalesRepository extends TenantRepository {
             saleId: string;
             productId: string;
             quantity: number;
-            sellPrice: number;
+            sellPrice: string;
         },
         tx?: Database
     ) {
@@ -63,7 +63,7 @@ export class SalesRepository extends TenantRepository {
                 saleId: data.saleId,
                 productId: data.productId,
                 quantity: data.quantity,
-                sellPrice: data.sellPrice.toString(),
+                sellPrice: data.sellPrice,
             })
             .returning();
 
@@ -78,7 +78,7 @@ export class SalesRepository extends TenantRepository {
             saleItemId: string;
             batchId: string;
             quantity: number;
-            sellPrice: number;
+            sellPrice: string;
             buyPrice: string;
         },
         tx?: Database
@@ -92,7 +92,7 @@ export class SalesRepository extends TenantRepository {
                 saleItemId: data.saleItemId,
                 batchId: data.batchId,
                 quantity: data.quantity,
-                sellPrice: data.sellPrice.toString(),
+                sellPrice: data.sellPrice,
                 buyPrice: data.buyPrice,
             })
             .returning();

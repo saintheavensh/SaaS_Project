@@ -1,6 +1,7 @@
 import { eq, and, sql, sum, count, gte, lte } from 'drizzle-orm';
 import { sales, salesItems, salesItemBatches, salesSummaries } from '@my-saas-app/db';
 import { TenantRepository, Database } from '../../../core/database/tenant-repository-base.js';
+import { safeSubtract } from '../../../core/utils/currency.js';
 
 /**
  * Repository for Sales Summary aggregations and cached metrics.
@@ -80,7 +81,7 @@ export class SalesSummaryRepository extends TenantRepository {
         const revenue = revenueResult[0]?.totalRevenue || '0';
         const cogs = cogsResult[0]?.totalCogs || '0';
         const salesCount = revenueResult[0]?.salesCount || 0;
-        const grossProfit = (Number(revenue) - Number(cogs)).toString();
+        const grossProfit = safeSubtract(revenue, cogs);
 
         return {
             totalRevenue: revenue,
