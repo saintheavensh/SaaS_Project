@@ -131,7 +131,7 @@ export class InventoryService {
      *
      * After FIFO loop: update product snapshot stock.
      */
-    async deductStockFIFO(productId: string, quantity: number, saleId: string, tx?: Database): Promise<BatchDeduction[]> {
+    async deductStockFIFO(productId: string, quantity: number, saleId: string, tx?: Database, options?: { dryRun?: boolean }): Promise<BatchDeduction[]> {
         if (quantity <= 0 || !Number.isInteger(quantity)) {
             throw new Error('Quantity must be a positive integer');
         }
@@ -155,22 +155,24 @@ export class InventoryService {
 
                 const takeQty = Math.min(batch.currentStock, remainingQty);
 
-                // 3. Decrease batch stock atomically
-                const updated = await this.repository.decreaseBatchStock(batch.id, takeQty, dbTx);
-                if (!updated) {
-                    // Concurrent modification — skip this batch, try next
-                    continue;
-                }
+                if (!options?.dryRun) {
+                    // 3. Decrease batch stock atomically
+                    const updated = await this.repository.decreaseBatchStock(batch.id, takeQty, dbTx);
+                    if (!updated) {
+                        // Concurrent modification — skip this batch, try next
+                        continue;
+                    }
 
-                // 4. Record ledger movement
-                await this.ledgerRepo!.recordStockMovement(
-                    productId,
-                    batch.id,
-                    -takeQty,
-                    'SALE',
-                    saleId,
-                    dbTx
-                );
+                    // 4. Record ledger movement
+                    await this.ledgerRepo!.recordStockMovement(
+                        productId,
+                        batch.id,
+                        -takeQty,
+                        'SALE',
+                        saleId,
+                        dbTx
+                    );
+                }
 
                 // 5. Collect deduction detail
                 deductions.push({
@@ -189,14 +191,16 @@ export class InventoryService {
                 );
             }
 
-            // 7. Update product snapshot stock
-            const stockResult = await this.repository.updateStockDelta(productId, -quantity, dbTx);
-            if (stockResult.affectedRows === 0) {
-                throw new InsufficientStockError(
-                    `Failed to update snapshot stock for product ${productId}`
-                );
+            if (!options?.dryRun) {
+                // 7. Update product snapshot stock
+                const stockResult = await this.repository.updateStockDelta(productId, -quantity, dbTx);
+                if (stockResult.affectedRows === 0) {
+                    throw new InsufficientStockError(
+                        `Failed to update snapshot stock for product ${productId}`
+                    );
+                }
+                finalStock = stockResult.newStock;
             }
-            finalStock = stockResult.newStock;
         };
 
         if (tx) {
@@ -205,15 +209,17 @@ export class InventoryService {
             await db.transaction(operation);
         }
 
-        // Emit event only after successful commit
-        const payload: InventoryEventPayload = {
-            tenantId: this.tenantId,
-            productId,
-            delta: -quantity,
-            newStock: finalStock,
-            metadata: { saleId, deductions },
-        };
-        inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
+        if (!options?.dryRun) {
+            // Emit event only after successful commit
+            const payload: InventoryEventPayload = {
+                tenantId: this.tenantId,
+                productId,
+                delta: -quantity,
+                newStock: finalStock,
+                metadata: { saleId, deductions },
+            };
+            inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
+        }
 
         return deductions;
     }

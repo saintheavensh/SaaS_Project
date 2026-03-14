@@ -19,59 +19,38 @@ export class SalesService {
      * Creates a sale transaction
      */
     async createSale(input: CreateSaleInput): Promise<string> {
-        // Calculate total amount from items ensuring numeric consistency
-        const totalAmount = input.items.reduce(
-            (sum, item) => sum + Number(item.sellPrice) * item.quantity,
-            0
-        );
-
         let finalSaleId: string = '';
 
         await db.transaction(async (tx) => {
-            // 1. Create sale record
-            const newSale = await this.repository.createSale({
-                customerId: input.customerId ?? null,
-                totalAmount,
-                status: 'COMPLETED' satisfies SaleStatus,
-            }, tx);
+            // Step 3: Compute totalRevenue and gather dry-run FIFO data
+            let totalRevenue = 0;
+            let totalCogs = 0;
+            const itemBatchPreviews: { item: typeof input.items[0], batches: Awaited<ReturnType<InventoryService['deductStockFIFO']>> }[] = [];
 
-            finalSaleId = newSale.id;
-
-            // 2. Loop through items
             for (const item of input.items) {
-                // a) Call FIFO deduction
+                totalRevenue += Number(item.sellPrice) * item.quantity;
+
+                // Get FIFO preview (dry-run)
                 const batches = await this.inventoryService.deductStockFIFO(
                     item.productId,
                     item.quantity,
-                    newSale.id,
-                    tx
+                    'DRY_RUN', // temporary ID
+                    tx,
+                    { dryRun: true }
                 );
 
-                // b) Create sale item record
-                const saleItem = await this.repository.createSaleItem({
-                    saleId: newSale.id,
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    sellPrice: item.sellPrice,
-                }, tx);
-
-                // c) Record each consumed batch and compute item cost
-                let itemCost = 0;
+                let itemCogs = 0;
                 for (const batch of batches) {
-                    itemCost += batch.quantityTaken * Number(batch.buyPrice);
-
-                    await this.repository.createSaleItemBatch({
-                        saleItemId: saleItem.id,
-                        batchId: batch.batchId,
-                        quantity: batch.quantityTaken,
-                        sellPrice: item.sellPrice,
-                        costPrice: batch.buyPrice,
-                    }, tx);
+                    itemCogs += batch.quantityTaken * Number(batch.buyPrice);
                 }
-
-                // itemCost can be used here for future profit reporting/ledger entries
-                // For now, it's just computed per requirement.
+                totalCogs += itemCogs;
+                itemBatchPreviews.push({ item, batches });
             }
+
+            const grossProfit = totalRevenue - totalCogs;
+
+            // TODO: Step 4 - Insert sale record
+            // TODO: Step 5 - Create items and batches
         });
 
         return finalSaleId;
