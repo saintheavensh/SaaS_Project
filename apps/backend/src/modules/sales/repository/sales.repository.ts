@@ -22,7 +22,7 @@ export class SalesRepository extends TenantRepository {
         tx?: Database
     ) {
         const client = tx || this.db;
-        
+
         const [newSale] = await client
             .insert(sales)
             .values({
@@ -32,7 +32,7 @@ export class SalesRepository extends TenantRepository {
                 status: data.status,
             })
             .returning();
-            
+
         return newSale;
     }
 
@@ -49,7 +49,7 @@ export class SalesRepository extends TenantRepository {
         tx?: Database
     ) {
         const client = tx || this.db;
-        
+
         const [newItem] = await client
             .insert(salesItems)
             .values({
@@ -60,7 +60,7 @@ export class SalesRepository extends TenantRepository {
                 sellPrice: data.sellPrice.toString(),
             })
             .returning();
-            
+
         return newItem;
     }
 
@@ -72,12 +72,13 @@ export class SalesRepository extends TenantRepository {
             saleItemId: string;
             batchId: string;
             quantity: number;
-            buyPrice: string;
+            sellPrice: number;
+            costPrice: string;
         },
         tx?: Database
     ) {
         const client = tx || this.db;
-        
+
         const [newSaleItemBatch] = await client
             .insert(salesItemBatches)
             .values({
@@ -85,10 +86,11 @@ export class SalesRepository extends TenantRepository {
                 saleItemId: data.saleItemId,
                 batchId: data.batchId,
                 quantity: data.quantity,
-                buyPrice: data.buyPrice,
+                sellPrice: data.sellPrice.toString(),
+                costPrice: data.costPrice,
             })
             .returning();
-            
+
         return newSaleItemBatch;
     }
 }
