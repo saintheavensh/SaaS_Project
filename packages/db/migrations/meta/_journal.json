@@ -43,6 +43,13 @@
       "when": 1773441070368,
       "tag": "0005_add_cogs_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773481378759,
+      "tag": "0006_true_mathemanic",
+      "breakpoints": true
     }
   ]
 }
