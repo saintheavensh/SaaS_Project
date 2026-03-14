@@ -45,7 +45,7 @@ export class SalesService {
 
                     let itemCogs = 0;
                     for (const batch of batches) {
-                        itemCogs += batch.quantityTaken * Number(batch.buyPrice);
+                        itemCogs += batch.quantity * Number(batch.buyPrice);
                     }
                     totalCogs += itemCogs;
                     itemBatchPreviews.push({ item, batches });
@@ -88,9 +88,9 @@ export class SalesService {
                         await this.repository.createSaleItemBatch({
                             saleItemId: saleItem.id,
                             batchId: batch.batchId,
-                            quantity: batch.quantityTaken,
+                            quantity: batch.quantity,
                             sellPrice: preview.item.sellPrice,
-                            costPrice: batch.buyPrice,
+                            buyPrice: batch.buyPrice,
                         }, tx);
                     }
                 }
