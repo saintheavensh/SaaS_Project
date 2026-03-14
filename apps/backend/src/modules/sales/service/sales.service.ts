@@ -3,6 +3,7 @@ import { CreateSaleInput } from '../schemas/sales.schemas.js';
 import { SaleStatus } from '../types/sales.types.js';
 import { InventoryService } from '../../inventory/service.js';
 import { db } from '../../../core/db.js';
+import { decimalToMinorUnit, minorUnitToDecimal } from '../../../core/utils/currency.js';
 
 /**
  * Service for Sales operations.
@@ -24,15 +25,16 @@ export class SalesService {
         try {
             await db.transaction(async (tx) => {
                 // Step 3: Compute totalRevenue and gather dry-run FIFO data
-                let totalRevenue = 0;
-                let totalCogs = 0;
+                let totalRevenueCents = 0;
+                let totalCogsCents = 0;
                 const itemBatchPreviews: {
                     item: typeof input.items[0],
                     batches: Awaited<ReturnType<InventoryService['deductStockFIFO']>>
                 }[] = [];
 
                 for (const item of input.items) {
-                    totalRevenue += Number(item.sellPrice) * item.quantity;
+                    const itemSellPriceCents = decimalToMinorUnit(item.sellPrice);
+                    totalRevenueCents += itemSellPriceCents * item.quantity;
 
                     // Get FIFO preview (dry-run)
                     const batches = await this.inventoryService.deductStockFIFO(
@@ -43,23 +45,24 @@ export class SalesService {
                         { dryRun: true }
                     );
 
-                    let itemCogs = 0;
+                    let itemCogsCents = 0;
                     for (const batch of batches) {
-                        itemCogs += batch.quantity * Number(batch.buyPrice);
+                        const batchBuyPriceCents = decimalToMinorUnit(batch.buyPrice);
+                        itemCogsCents += batch.quantity * batchBuyPriceCents;
                     }
-                    totalCogs += itemCogs;
+                    totalCogsCents += itemCogsCents;
                     itemBatchPreviews.push({ item, batches });
                 }
 
-                const grossProfit = totalRevenue - totalCogs;
+                const grossProfitCents = totalRevenueCents - totalCogsCents;
 
                 // Step 4: Create sale record with financials
                 const newSale = await this.repository.createSale({
                     customerId: input.customerId ?? null,
-                    totalAmount: totalRevenue,
-                    revenue: totalRevenue,
-                    cogs: totalCogs,
-                    grossProfit,
+                    totalAmount: minorUnitToDecimal(totalRevenueCents),
+                    revenue: minorUnitToDecimal(totalRevenueCents),
+                    cogs: minorUnitToDecimal(totalCogsCents),
+                    grossProfit: minorUnitToDecimal(grossProfitCents),
                     status: 'COMPLETED' as SaleStatus,
                 }, tx);
 
@@ -80,7 +83,7 @@ export class SalesService {
                         saleId: newSale.id,
                         productId: preview.item.productId,
                         quantity: preview.item.quantity,
-                        sellPrice: preview.item.sellPrice,
+                        sellPrice: preview.item.sellPrice.toString(),
                     }, tx);
 
                     // c) Record each consumed batch
@@ -89,7 +92,7 @@ export class SalesService {
                             saleItemId: saleItem.id,
                             batchId: batch.batchId,
                             quantity: batch.quantity,
-                            sellPrice: preview.item.sellPrice,
+                            sellPrice: preview.item.sellPrice.toString(),
                             buyPrice: batch.buyPrice,
                         }, tx);
                     }
