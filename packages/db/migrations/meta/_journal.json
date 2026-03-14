@@ -36,6 +36,13 @@
       "when": 1773441070367,
       "tag": "0004_lucky_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1773441070368,
+      "tag": "0005_add_cogs_fields",
+      "breakpoints": true
     }
   ]
 }

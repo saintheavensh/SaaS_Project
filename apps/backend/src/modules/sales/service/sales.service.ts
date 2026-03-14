@@ -13,7 +13,7 @@ export class SalesService {
         private readonly tenantId: string,
         private readonly repository: SalesRepository,
         private readonly inventoryService: InventoryService
-    ) {}
+    ) { }
 
     /**
      * Creates a sale transaction
@@ -55,15 +55,22 @@ export class SalesService {
                     sellPrice: item.sellPrice,
                 }, tx);
 
-                // c) Record each consumed batch
+                // c) Record each consumed batch and compute item cost
+                let itemCost = 0;
                 for (const batch of batches) {
+                    itemCost += batch.quantityTaken * Number(batch.buyPrice);
+
                     await this.repository.createSaleItemBatch({
                         saleItemId: saleItem.id,
                         batchId: batch.batchId,
-                        quantity: batch.quantity,
-                        buyPrice: batch.buyPrice,
+                        quantity: batch.quantityTaken,
+                        sellPrice: item.sellPrice,
+                        costPrice: batch.buyPrice,
                     }, tx);
                 }
+
+                // itemCost can be used here for future profit reporting/ledger entries
+                // For now, it's just computed per requirement.
             }
         });
 

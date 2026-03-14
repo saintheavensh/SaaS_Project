@@ -187,7 +187,8 @@ export const salesItemBatches = pgTable('sales_item_batches', {
     saleItemId: uuid('sale_item_id').references(() => salesItems.id).notNull(),
     batchId: uuid('batch_id').references(() => batches.id).notNull(),
     quantity: integer('quantity').notNull(),
-    buyPrice: numeric('buy_price').notNull(),
+    costPrice: numeric('cost_price').notNull(),
+    sellPrice: numeric('sell_price').notNull(),
 }, (table) => {
     return {
         tenantIdx: index('sales_item_batches_tenant_idx').on(table.tenantId),

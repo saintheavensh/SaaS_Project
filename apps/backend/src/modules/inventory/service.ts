@@ -13,7 +13,7 @@ export class InventoryService {
         private readonly tenantId: string,
         private readonly repository: InventoryRepository,
         private readonly ledgerRepo?: LedgerRepository
-    ) {}
+    ) { }
 
     /**
      * Deduct stock for a specific product
@@ -24,7 +24,7 @@ export class InventoryService {
 
         await db.transaction(async (tx) => {
             result = await this.repository.updateStockDelta(productId, -quantity, tx);
-            
+
             if (result.affectedRows === 0) {
                 throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
             }
@@ -175,7 +175,7 @@ export class InventoryService {
                 // 5. Collect deduction detail
                 deductions.push({
                     batchId: batch.id,
-                    quantity: takeQty,
+                    quantityTaken: takeQty,
                     buyPrice: batch.buyPrice,
                 });
 
@@ -224,7 +224,7 @@ export class InventoryService {
     async finalizeOpnameSession(sessionId: string) {
         // Logic to finalize opname session would go here.
         // For now, emitting an event as a placeholder for the audit flow.
-        
+
         inventoryEmitter.emit(InventoryEvent.OPNAME_FINALIZED, {
             tenantId: this.tenantId,
             metadata: { sessionId },
@@ -240,6 +240,6 @@ export class InventoryService {
  */
 export interface BatchDeduction {
     batchId: string;
-    quantity: number;
+    quantityTaken: number;
     buyPrice: string;
 }
