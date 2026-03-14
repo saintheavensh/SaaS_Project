@@ -49,7 +49,18 @@ export class SalesService {
 
             const grossProfit = totalRevenue - totalCogs;
 
-            // TODO: Step 4 - Insert sale record
+            // Step 4: Create sale record with financials
+            const newSale = await this.repository.createSale({
+                customerId: input.customerId ?? null,
+                totalAmount: totalRevenue,
+                revenue: totalRevenue,
+                cogs: totalCogs,
+                grossProfit,
+                status: 'COMPLETED' as SaleStatus,
+            }, tx);
+
+            finalSaleId = newSale.id;
+
             // TODO: Step 5 - Create items and batches
         });
 
