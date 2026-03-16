@@ -71,6 +71,13 @@
       "when": 1773681944614,
       "tag": "0009_glamorous_penance",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1773683075899,
+      "tag": "0010_hesitant_captain_cross",
+      "breakpoints": true
     }
   ]
 }
