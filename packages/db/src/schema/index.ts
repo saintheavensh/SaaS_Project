@@ -5,3 +5,5 @@ export * from "./catalog/products";
 export * from "./inventory/batches";
 export * from "./inventory/stockMovements";
 export * from "./inventory/sales";
+export * from "./catalog/devices";
+export * from "./catalog/productDeviceCompatibility";
