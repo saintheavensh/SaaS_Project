@@ -12,6 +12,7 @@ import { productsRouter } from './modules/products/index.js';
 import { ledgerRouter } from './modules/ledger/index.js';
 import { catalogRouter } from './modules/catalog/index.js';
 import { supplierRouter } from './modules/suppliers/index.js';
+import { categoryRouter } from './modules/categories/index.js';
 
 const router = new Hono<AppEnv>();
 
@@ -46,5 +47,8 @@ router.route('/catalog', catalogRouter);
 
 // Suppliers Module
 router.route('/suppliers', supplierRouter);
+
+// Categories Module
+router.route('/categories', categoryRouter);
 
 export default router;

@@ -8,3 +8,4 @@ export * from "./inventory/sales";
 export * from "./catalog/devices";
 export * from "./catalog/productDeviceCompatibility";
 export * from "./suppliers";
+export * from "./categories";
