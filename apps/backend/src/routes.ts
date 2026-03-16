@@ -15,6 +15,7 @@ import { supplierRouter } from './modules/suppliers/index.js';
 import { categoryRouter } from './modules/categories/index.js';
 import { productBrandRouter } from './modules/product-brands/index.js';
 import { deviceBrandRouter } from './modules/device-brands/index.js';
+import { devicesRouter } from './modules/devices/index.js';
 
 const router = new Hono<AppEnv>();
 
@@ -58,5 +59,8 @@ router.route('/product-brands', productBrandRouter);
 
 // Device Brands Module
 router.route('/device-brands', deviceBrandRouter);
+
+// Devices Module
+router.route('/devices', devicesRouter);
 
 export default router;
