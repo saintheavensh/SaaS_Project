@@ -1,16 +1,7 @@
 import { pgTable, uuid, varchar, timestamp, text, index, primaryKey, integer, numeric } from 'drizzle-orm/pg-core';
 
-/**
- * Tenants table - Root of multi-tenancy
- */
-export const tenants = pgTable('tenants', {
-    id: uuid('id').defaultRandom().primaryKey(),
-    name: varchar('name', { length: 255 }).notNull().unique(),
-    slug: varchar('slug', { length: 255 }).notNull().unique(),
-    description: text('description'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export * from './schema/core/tenants.js';
+export * from './schema/core/timestamps.js';
 
 export const permissions = pgTable('permissions', {
     id: uuid('id').defaultRandom().primaryKey(),
@@ -84,24 +75,9 @@ export const users = pgTable('users', {
     };
 });
 
-/**
- * Products table - Scoped by tenant_id
- */
-export const products = pgTable('products', {
-    id: uuid('id').defaultRandom().primaryKey(),
-    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
-    name: varchar('name', { length: 255 }).notNull(),
-    description: text('description'),
-    stock: integer('stock').default(0).notNull(), // Snapshot stock
-    categoryId: uuid('category_id'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => {
-    return {
-        tenantIdx: index('products_tenant_idx').on(table.tenantId),
-        nameTenantIdx: index('products_name_tenant_idx').on(table.tenantId, table.name),
-    };
-});
+import { tenants } from './schema/core/tenants.js';
+import { products } from './schema/catalog/products.js';
+export { tenants, products };
 
 /**
  * Product Batches table - Scoped by tenant_id
