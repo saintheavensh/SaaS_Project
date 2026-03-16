@@ -1,5 +1,5 @@
 import { CatalogRepository } from './catalog.repository.js';
-import { CatalogDisplay, DeviceSparepartResult } from './types.js';
+import { CatalogDisplay, DeviceSparepartResult, DeviceSearchResult } from './types.js';
 
 /**
  * Service for Catalog operations
@@ -19,5 +19,12 @@ export class CatalogService {
      */
     async searchSparepartsByDevice(deviceId: string): Promise<DeviceSparepartResult | null> {
         return this.catalogRepository.searchSparepartsByDevice(deviceId);
+    }
+
+    /**
+     * Search compatible devices using autocomplete
+     */
+    async searchDevices(query: string): Promise<DeviceSearchResult[]> {
+        return this.catalogRepository.searchDevices(query);
     }
 }

@@ -37,3 +37,13 @@ export type DeviceSparepartResult = {
     name: string;
   }[];
 };
+
+/**
+ * Type representing device search results for autocomplete
+ */
+export type DeviceSearchResult = {
+  id: string;
+  brand: string;
+  model: string;
+  series?: string | null;
+};

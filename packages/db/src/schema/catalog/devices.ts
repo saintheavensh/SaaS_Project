@@ -21,5 +21,6 @@ export const devices = pgTable('devices', {
 }, (table) => {
     return {
         tenantIdx: index('devices_tenant_idx').on(table.tenantId),
+        searchIdx: index('devices_tenant_brand_model_idx').on(table.tenantId, table.brand, table.model),
     };
 });
