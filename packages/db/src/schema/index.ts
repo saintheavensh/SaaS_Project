@@ -9,4 +9,5 @@ export * from "./catalog/devices";
 export * from "./catalog/productDeviceCompatibility";
 export * from "./suppliers";
 export * from "./categories";
-export * from "./brands";
+export * from "./product_brands";
+export * from "./device_brands";

@@ -1,14 +1,14 @@
 import { Context } from 'hono';
-import { BrandService } from './brands.service.js';
-import { BrandRepository } from './brands.repository.js';
+import { ProductBrandService } from './product-brands.service.js';
+import { ProductBrandRepository } from './product-brands.repository.js';
 import { db } from '../../core/db.js';
 import { AppEnv } from '../../core/types/app-env.js';
 import { successResponse, errorResponse } from '../../core/utils/response.js';
 
 /**
- * Controller for Brand endpoints
+ * Controller for Product Brand endpoints
  */
-export class BrandController {
+export class ProductBrandController {
   /**
    * List all brands
    */
@@ -19,8 +19,8 @@ export class BrandController {
         return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
       }
 
-      const repository = new BrandRepository(db, tenantId);
-      const service = new BrandService(repository);
+      const repository = new ProductBrandRepository(db, tenantId);
+      const service = new ProductBrandService(repository);
       
       const brands = await service.getBrands();
       return successResponse(c, brands, 'Brands retrieved successfully');
@@ -41,8 +41,8 @@ export class BrandController {
         return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
       }
 
-      const repository = new BrandRepository(db, tenantId);
-      const service = new BrandService(repository);
+      const repository = new ProductBrandRepository(db, tenantId);
+      const service = new ProductBrandService(repository);
       
       const brand = await service.getBrandById(id!);
       if (!brand) {
@@ -67,8 +67,8 @@ export class BrandController {
       }
 
       const body = await c.req.json();
-      const repository = new BrandRepository(db, tenantId);
-      const service = new BrandService(repository);
+      const repository = new ProductBrandRepository(db, tenantId);
+      const service = new ProductBrandService(repository);
       
       const brand = await service.createBrand(body);
       return successResponse(c, brand, 'Brand created successfully', 201);
@@ -90,8 +90,8 @@ export class BrandController {
       }
 
       const body = await c.req.json();
-      const repository = new BrandRepository(db, tenantId);
-      const service = new BrandService(repository);
+      const repository = new ProductBrandRepository(db, tenantId);
+      const service = new ProductBrandService(repository);
       
       const result = await service.updateBrand(id!, body);
       if (!result) {
@@ -116,8 +116,8 @@ export class BrandController {
         return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
       }
 
-      const repository = new BrandRepository(db, tenantId);
-      const service = new BrandService(repository);
+      const repository = new ProductBrandRepository(db, tenantId);
+      const service = new ProductBrandService(repository);
       
       const success = await service.deleteBrand(id!);
       if (!success) {

@@ -1,11 +1,11 @@
-import { BrandRepository } from './brands.repository.js';
+import { ProductBrandRepository } from './product-brands.repository.js';
 import { CreateBrandInput, UpdateBrandInput, Brand } from './types.js';
 
 /**
- * Service for Brand operations
+ * Service for Product Brand operations
  */
-export class BrandService {
-  constructor(private readonly brandRepository: BrandRepository) {}
+export class ProductBrandService {
+  constructor(private readonly brandRepository: ProductBrandRepository) {}
 
   /**
    * Get all brands for the current tenant
