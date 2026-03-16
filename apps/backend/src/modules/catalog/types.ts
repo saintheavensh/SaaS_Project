@@ -24,3 +24,16 @@ export type CatalogDisplay = {
   productId: string;
   title: string;
 };
+
+/**
+ * Type representing compatible spareparts for a specific device
+ */
+export type DeviceSparepartResult = {
+  deviceId: string;
+  deviceBrand: string;
+  deviceModel: string;
+  products: {
+    id: string;
+    name: string;
+  }[];
+};

@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { Database, TenantRepository } from '../../core/database/tenant-repository-base.js';
 import { products, devices, productDeviceCompatibility } from '@my-saas-app/db';
-import { CatalogDevice, CatalogProduct, CatalogDisplay } from './types.js';
+import { CatalogDevice, CatalogProduct, CatalogDisplay, DeviceSparepartResult } from './types.js';
 
 /**
  * Repository for Catalog operations, focusing on product-device compatibility and display titles.
@@ -22,6 +22,57 @@ export class CatalogRepository extends TenantRepository {
             productId: product.id,
             title: this.buildCatalogTitle(product)
         }));
+    }
+
+    /**
+     * Public method to search spareparts compatible with a specific device.
+     */
+    async searchSparepartsByDevice(deviceId: string): Promise<DeviceSparepartResult | null> {
+        const rows = await this.db
+            .select({
+                deviceId: devices.id,
+                deviceBrand: devices.brand,
+                deviceModel: devices.model,
+                productId: products.id,
+                productName: products.name,
+            })
+            .from(devices)
+            .leftJoin(
+                productDeviceCompatibility,
+                eq(productDeviceCompatibility.deviceId, devices.id)
+            )
+            .leftJoin(
+                products,
+                eq(productDeviceCompatibility.productId, products.id)
+            )
+            .where(
+                and(
+                    eq(devices.id, deviceId),
+                    eq(devices.tenantId, this.tenantId)
+                )
+            );
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        const result: DeviceSparepartResult = {
+            deviceId: rows[0].deviceId,
+            deviceBrand: rows[0].deviceBrand as string,
+            deviceModel: rows[0].deviceModel as string,
+            products: []
+        };
+
+        for (const row of rows) {
+            if (row.productId && row.productName && !result.products.some(p => p.id === row.productId)) {
+                result.products.push({
+                    id: row.productId,
+                    name: row.productName as string
+                });
+            }
+        }
+
+        return result;
     }
 
     /**
