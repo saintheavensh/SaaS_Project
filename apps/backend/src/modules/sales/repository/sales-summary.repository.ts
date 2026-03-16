@@ -67,14 +67,16 @@ export class SalesSummaryRepository extends TenantRepository {
         // 2. Calculate COGS (from sales_item_batches)
         const cogsResult = await client
             .select({
-                totalCogs: sum(sql`${salesItemBatches.quantity} * ${salesItemBatches.buyPrice}`),
+                totalCogs: sum(sql`${salesItemBatches.quantity} * ${salesItemBatches.costPrice}`),
             })
             .from(salesItemBatches)
+            .innerJoin(salesItems, eq(salesItemBatches.saleItemId, salesItems.id))
+            .innerJoin(sales, eq(salesItems.saleId, sales.id))
             .where(
                 and(
                     eq(salesItemBatches.tenantId, this.tenantId),
-                    gte(salesItemBatches.createdAt, startDate),
-                    lte(salesItemBatches.createdAt, endDate)
+                    gte(sales.createdAt, startDate),
+                    lte(sales.createdAt, endDate)
                 )
             );
 
@@ -102,11 +104,12 @@ export class SalesSummaryRepository extends TenantRepository {
                 totalRevenue: sum(sql`${salesItems.quantity} * ${salesItems.sellPrice}`),
             })
             .from(salesItems)
+            .innerJoin(sales, eq(salesItems.saleId, sales.id))
             .where(
                 and(
                     eq(salesItems.tenantId, this.tenantId),
-                    gte(salesItems.createdAt, startDate),
-                    lte(salesItems.createdAt, endDate)
+                    gte(sales.createdAt, startDate),
+                    lte(sales.createdAt, endDate)
                 )
             )
             .groupBy(salesItems.productId);

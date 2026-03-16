@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, integer, timestamp, index } from 'drizzle-orm/pg-core';
-import { tenants } from '../core/tenants.js';
-import { products } from '../catalog/products.js';
-import { batches } from './batches.js';
+import { tenants } from '../core/tenants';
+import { products } from '../catalog/products';
+import { batches } from './batches';
 
 /**
  * Stock Movements table - Append-only ledger scoped by tenant_id

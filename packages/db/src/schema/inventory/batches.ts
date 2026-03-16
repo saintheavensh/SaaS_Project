@@ -1,7 +1,7 @@
 import { pgTable, uuid, numeric, integer, index } from 'drizzle-orm/pg-core';
-import { tenants } from '../core/tenants.js';
-import { products } from '../catalog/products.js';
-import { timestamps } from '../core/timestamps.js';
+import { tenants } from '../core/tenants';
+import { products } from '../catalog/products';
+import { timestamps } from '../core/timestamps';
 
 /**
  * Product Batches table - Scoped by tenant_id

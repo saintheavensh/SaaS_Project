@@ -1,6 +1,6 @@
 import { pgTable, uuid, varchar, text, integer, timestamp, index } from 'drizzle-orm/pg-core';
-import { tenants } from '../core/tenants.js';
-import { timestamps } from '../core/timestamps.js';
+import { tenants } from '../core/tenants';
+import { timestamps } from '../core/timestamps';
 
 /**
  * Products table - Scoped by tenant_id

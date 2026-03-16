@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from './schema/index.js';
+import * as schema from './schema/index';
 
 /**
  * Initialize Drizzle client with Supabase (skeleton)
@@ -10,4 +10,4 @@ export const initDb = (connectionString: string) => {
     return drizzle(client, { schema });
 };
 
-export * from './schema/index.js';
+export * from './schema/index';
