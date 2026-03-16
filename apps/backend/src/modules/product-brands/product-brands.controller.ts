@@ -9,20 +9,14 @@ import { successResponse, errorResponse } from '../../core/utils/response.js';
  * Controller for Product Brand endpoints
  */
 export class ProductBrandController {
+  constructor(private readonly service: ProductBrandService) {}
+
   /**
    * List all brands
    */
   async listBrands(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new ProductBrandRepository(db, tenantId);
-      const service = new ProductBrandService(repository);
-      
-      const brands = await service.getBrands();
+      const brands = await this.service.getBrands();
       return successResponse(c, brands, 'Brands retrieved successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -35,16 +29,8 @@ export class ProductBrandController {
    */
   async getBrand(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new ProductBrandRepository(db, tenantId);
-      const service = new ProductBrandService(repository);
-      
-      const brand = await service.getBrandById(id!);
+      const brand = await this.service.getBrandById(id!);
       if (!brand) {
         return errorResponse(c, 'Not Found', 'Brand not found', 404);
       }
@@ -61,16 +47,8 @@ export class ProductBrandController {
    */
   async createBrand(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
       const body = await c.req.json();
-      const repository = new ProductBrandRepository(db, tenantId);
-      const service = new ProductBrandService(repository);
-      
-      const brand = await service.createBrand(body);
+      const brand = await this.service.createBrand(body);
       return successResponse(c, brand, 'Brand created successfully', 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -83,17 +61,9 @@ export class ProductBrandController {
    */
   async updateBrand(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
       const body = await c.req.json();
-      const repository = new ProductBrandRepository(db, tenantId);
-      const service = new ProductBrandService(repository);
-      
-      const result = await service.updateBrand(id!, body);
+      const result = await this.service.updateBrand(id!, body);
       if (!result) {
         return errorResponse(c, 'Not Found', 'Brand not found', 404);
       }
@@ -110,16 +80,8 @@ export class ProductBrandController {
    */
   async deleteBrand(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new ProductBrandRepository(db, tenantId);
-      const service = new ProductBrandService(repository);
-      
-      const success = await service.deleteBrand(id!);
+      const success = await this.service.deleteBrand(id!);
       if (!success) {
         return errorResponse(c, 'Not Found', 'Brand not found or delete failed', 404);
       }
