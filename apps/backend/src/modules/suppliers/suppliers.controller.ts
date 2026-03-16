@@ -9,20 +9,14 @@ import { successResponse, errorResponse } from '../../core/utils/response.js';
  * Controller for Supplier endpoints
  */
 export class SupplierController {
+  constructor(private readonly service: SupplierService) {}
+
   /**
    * List all suppliers
    */
   async listSuppliers(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new SupplierRepository(db, tenantId);
-      const service = new SupplierService(repository);
-      
-      const suppliers = await service.getSuppliers();
+      const suppliers = await this.service.getSuppliers();
       return successResponse(c, suppliers, 'Suppliers retrieved successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -35,16 +29,8 @@ export class SupplierController {
    */
   async getSupplier(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new SupplierRepository(db, tenantId);
-      const service = new SupplierService(repository);
-      
-      const supplier = await service.getSupplierById(id!);
+      const supplier = await this.service.getSupplierById(id!);
       if (!supplier) {
         return errorResponse(c, 'Not Found', 'Supplier not found', 404);
       }
@@ -61,16 +47,8 @@ export class SupplierController {
    */
   async createSupplier(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
       const body = await c.req.json();
-      const repository = new SupplierRepository(db, tenantId);
-      const service = new SupplierService(repository);
-      
-      const supplier = await service.createSupplier(body);
+      const supplier = await this.service.createSupplier(body);
       return successResponse(c, supplier, 'Supplier created successfully', 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -83,17 +61,9 @@ export class SupplierController {
    */
   async updateSupplier(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
       const body = await c.req.json();
-      const repository = new SupplierRepository(db, tenantId);
-      const service = new SupplierService(repository);
-      
-      const result = await service.updateSupplier(id!, body);
+      const result = await this.service.updateSupplier(id!, body);
       if (!result) {
         return errorResponse(c, 'Not Found', 'Supplier not found', 404);
       }
@@ -110,16 +80,8 @@ export class SupplierController {
    */
   async deleteSupplier(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new SupplierRepository(db, tenantId);
-      const service = new SupplierService(repository);
-      
-      const success = await service.deleteSupplier(id!);
+      const success = await this.service.deleteSupplier(id!);
       if (!success) {
         return errorResponse(c, 'Not Found', 'Supplier not found or delete failed', 404);
       }

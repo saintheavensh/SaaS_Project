@@ -9,20 +9,14 @@ import { successResponse, errorResponse } from '../../core/utils/response.js';
  * Controller for Category endpoints
  */
 export class CategoryController {
+  constructor(private readonly service: CategoryService) {}
+
   /**
    * List all categories
    */
   async listCategories(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new CategoryRepository(db, tenantId);
-      const service = new CategoryService(repository);
-      
-      const categories = await service.getCategories();
+      const categories = await this.service.getCategories();
       return successResponse(c, categories, 'Categories retrieved successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -35,16 +29,8 @@ export class CategoryController {
    */
   async getCategory(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new CategoryRepository(db, tenantId);
-      const service = new CategoryService(repository);
-      
-      const category = await service.getCategoryById(id!);
+      const category = await this.service.getCategoryById(id!);
       if (!category) {
         return errorResponse(c, 'Not Found', 'Category not found', 404);
       }
@@ -61,16 +47,8 @@ export class CategoryController {
    */
   async createCategory(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
       const body = await c.req.json();
-      const repository = new CategoryRepository(db, tenantId);
-      const service = new CategoryService(repository);
-      
-      const category = await service.createCategory(body);
+      const category = await this.service.createCategory(body);
       return successResponse(c, category, 'Category created successfully', 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -83,17 +61,9 @@ export class CategoryController {
    */
   async updateCategory(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
       const body = await c.req.json();
-      const repository = new CategoryRepository(db, tenantId);
-      const service = new CategoryService(repository);
-      
-      const result = await service.updateCategory(id!, body);
+      const result = await this.service.updateCategory(id!, body);
       if (!result) {
         return errorResponse(c, 'Not Found', 'Category not found', 404);
       }
@@ -110,16 +80,8 @@ export class CategoryController {
    */
   async deleteCategory(c: Context<AppEnv>) {
     try {
-      const tenantId = c.get('tenantId');
       const id = c.req.param('id');
-      if (!tenantId) {
-        return errorResponse(c, 'Unauthorized', 'Tenant ID not found in context', 401);
-      }
-
-      const repository = new CategoryRepository(db, tenantId);
-      const service = new CategoryService(repository);
-      
-      const success = await service.deleteCategory(id!);
+      const success = await this.service.deleteCategory(id!);
       if (!success) {
         return errorResponse(c, 'Not Found', 'Category not found or delete failed', 404);
       }
