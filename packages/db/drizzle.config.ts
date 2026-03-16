@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 dotenv.config({ path: "../../apps/backend/.env" });
 
 export default {
-    schema: "./src/schema.ts",
+    schema: "./src/schema/index.ts",
     out: "./migrations",
     driver: 'pg',
     dbCredentials: {
