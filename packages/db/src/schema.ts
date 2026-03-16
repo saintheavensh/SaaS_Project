@@ -79,46 +79,9 @@ import { tenants } from './schema/core/tenants.js';
 import { products } from './schema/catalog/products.js';
 export { tenants, products };
 
-/**
- * Product Batches table - Scoped by tenant_id
- */
-export const batches = pgTable('batches', {
-    id: uuid('id').defaultRandom().primaryKey(),
-    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
-    productId: uuid('product_id').references(() => products.id).notNull(),
-    buyPrice: numeric('buy_price').notNull(),
-    sellPrice: numeric('sell_price').notNull(),
-    initialStock: integer('initial_stock').notNull(),
-    currentStock: integer('current_stock').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => {
-    return {
-        tenantIdx: index('batches_tenant_idx').on(table.tenantId),
-        productTenantIdx: index('batches_product_tenant_idx').on(table.tenantId, table.productId),
-    };
-});
-
-/**
- * Stock Movements table - Append-only ledger scoped by tenant_id
- */
-export const stockMovements = pgTable('stock_movements', {
-    id: uuid('id').defaultRandom().primaryKey(),
-    tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
-    productId: uuid('product_id').references(() => products.id).notNull(),
-    batchId: uuid('batch_id').references(() => batches.id).notNull(),
-    movementType: text('movement_type').notNull(), // e.g., PURCHASE, SALE, ADJUSTMENT, OPNAME
-    delta: integer('delta').notNull(), // positive = added, negative = removed
-    referenceId: uuid('reference_id'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => {
-    return {
-        tenantIdx: index('stock_movements_tenant_idx').on(table.tenantId),
-        productIdx: index('stock_movements_product_idx').on(table.productId),
-        batchIdx: index('stock_movements_batch_idx').on(table.batchId),
-        createdAtIdx: index('stock_movements_created_at_idx').on(table.createdAt),
-    };
-});
+import { batches } from './schema/inventory/batches.js';
+import { stockMovements } from './schema/inventory/stockMovements.js';
+export { batches, stockMovements };
 
 /**
  * Sales table - Scoped by tenant_id
