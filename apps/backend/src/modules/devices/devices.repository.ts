@@ -72,6 +72,23 @@ export class DevicesRepository extends TenantRepository {
   }
 
   /**
+   * Find a device by brand and model for the current tenant
+   */
+  async findByBrandAndModel(brand: string, model: string): Promise<Device | null> {
+    const [result] = await this.db
+      .select()
+      .from(devices)
+      .where(
+        and(
+          eq(devices.brand, brand),
+          eq(devices.model, model),
+          eq(devices.tenantId, this.tenantId)
+        )
+      );
+    return result || null;
+  }
+
+  /**
    * Delete a device
    */
   async delete(id: string): Promise<boolean> {
