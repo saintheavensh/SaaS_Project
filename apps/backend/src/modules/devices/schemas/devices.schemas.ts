@@ -19,3 +19,10 @@ export const CreateDeviceSchema = z.object({
  * Zod schema for updating a device
  */
 export const UpdateDeviceSchema = CreateDeviceSchema.partial();
+
+/**
+ * Zod schema for device ID parameter
+ */
+export const DeviceIdParamSchema = z.object({
+  id: z.string().uuid('Invalid device ID format'),
+});
