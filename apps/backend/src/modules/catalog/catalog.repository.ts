@@ -1,7 +1,7 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike, or, asc } from 'drizzle-orm';
 import { Database, TenantRepository } from '../../core/database/tenant-repository-base.js';
 import { products, devices, productDeviceCompatibility } from '@my-saas-app/db';
-import { CatalogDevice, CatalogProduct, CatalogDisplay, DeviceSparepartResult } from './types.js';
+import { CatalogDevice, CatalogProduct, CatalogDisplay, DeviceSparepartResult, DeviceSearchResult } from './types.js';
 
 /**
  * Repository for Catalog operations, focusing on product-device compatibility and display titles.
@@ -73,6 +73,38 @@ export class CatalogRepository extends TenantRepository {
         }
 
         return result;
+    }
+
+    /**
+     * Public method for device autocomplete search.
+     */
+    async searchDevices(query: string): Promise<DeviceSearchResult[]> {
+        const trimmedQuery = query.trim();
+        if (trimmedQuery.length < 2) {
+            return [];
+        }
+
+        const searchPattern = `%${trimmedQuery}%`;
+
+        return this.db
+            .select({
+                id: devices.id,
+                brand: devices.brand,
+                model: devices.model,
+                series: devices.series
+            })
+            .from(devices)
+            .where(
+                and(
+                    eq(devices.tenantId, this.tenantId),
+                    or(
+                        ilike(devices.brand, searchPattern),
+                        ilike(devices.model, searchPattern)
+                    )
+                )
+            )
+            .orderBy(asc(devices.brand), asc(devices.model))
+            .limit(10);
     }
 
     /**
