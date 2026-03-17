@@ -11,3 +11,4 @@ export * from "./suppliers";
 export * from "./categories";
 export * from "./product_brands";
 export * from "./device_brands";
+export * from "./product_types";
