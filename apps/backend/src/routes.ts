@@ -10,11 +10,12 @@ import { userRoleRouter } from './modules/user-roles/index.js';
 import { inventoryRouter } from './modules/inventory/index.js';
 import { productsRouter } from './modules/products/index.js';
 import { ledgerRouter } from './modules/ledger/index.js';
-import { catalogRouter } from './modules/catalog/index.js';
+import { catalogRouter, compatibilityRouter } from './modules/catalog/index.js';
 import { supplierRouter } from './modules/suppliers/index.js';
 import { categoryRouter } from './modules/categories/index.js';
 import { productBrandRouter } from './modules/product-brands/index.js';
 import { deviceBrandRouter } from './modules/device-brands/index.js';
+import { devicesRouter } from './modules/devices/index.js';
 
 const router = new Hono<AppEnv>();
 
@@ -46,6 +47,7 @@ router.route('/ledger', ledgerRouter);
 
 // Catalog Module
 router.route('/catalog', catalogRouter);
+router.route('/compatibility', compatibilityRouter);
 
 // Suppliers Module
 router.route('/suppliers', supplierRouter);
@@ -58,5 +60,8 @@ router.route('/product-brands', productBrandRouter);
 
 // Device Brands Module
 router.route('/device-brands', deviceBrandRouter);
+
+// Devices Module
+router.route('/devices', devicesRouter);
 
 export default router;

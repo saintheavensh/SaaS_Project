@@ -1,0 +1,28 @@
+import { z } from 'zod';
+
+/**
+ * Zod schema for creating a device
+ */
+export const CreateDeviceSchema = z.object({
+  brandId: z.string().uuid('Invalid brand ID format'),
+  series: z.string().optional().nullable(),
+  model: z.string().min(1, 'Model is required'),
+  code: z.string().optional().nullable(),
+  image: z.string().optional().nullable(),
+  colors: z.array(z.string()).optional().nullable(),
+  specs: z.string().optional().nullable(),
+  chipset: z.string().optional().nullable(),
+  specifications: z.record(z.any()).optional().nullable(),
+});
+
+/**
+ * Zod schema for updating a device
+ */
+export const UpdateDeviceSchema = CreateDeviceSchema.partial();
+
+/**
+ * Zod schema for device ID parameter
+ */
+export const DeviceIdParamSchema = z.object({
+  id: z.string().uuid('Invalid device ID format'),
+});
