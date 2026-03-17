@@ -14,6 +14,7 @@ import { catalogRouter, compatibilityRouter } from './modules/catalog/index.js';
 import { supplierRouter } from './modules/suppliers/index.js';
 import { categoryRouter } from './modules/categories/index.js';
 import { productBrandRouter } from './modules/product-brands/index.js';
+import { productTypesRouter } from './modules/product-types/index.js';
 import { deviceBrandRouter } from './modules/device-brands/index.js';
 import { devicesRouter } from './modules/devices/index.js';
 
@@ -49,16 +50,11 @@ router.route('/ledger', ledgerRouter);
 router.route('/catalog', catalogRouter);
 router.route('/compatibility', compatibilityRouter);
 
-// Suppliers Module
+// Master Data Modules
 router.route('/suppliers', supplierRouter);
-
-// Categories Module
 router.route('/categories', categoryRouter);
-
-// Brands Module (Refactored to Product Brands)
 router.route('/product-brands', productBrandRouter);
-
-// Device Brands Module
+router.route('/product-types', productTypesRouter);
 router.route('/device-brands', deviceBrandRouter);
 
 // Devices Module
