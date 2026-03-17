@@ -9,18 +9,21 @@
         "dev": "tsc --watch",
         "typecheck": "tsc --build",
         "test": "vitest run --exclude dist",
-        "db:generate": "drizzle-kit generate:pg",
-        "db:migrate": "tsx src/migrate.ts"
+        "db:migrate": "tsx src/migrate.ts",
+        "db:push": "drizzle-kit push",
+        "db:generate": "drizzle-kit generate"
     },
     "dependencies": {
         "@my-saas-app/types": "workspace:^",
-        "drizzle-orm": "^0.30.0",
+        "drizzle-orm": "^0.45.1",
+        "pg": "^8.20.0",
         "postgres": "^3.4.0"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
         "dotenv": "^16.4.0",
-        "drizzle-kit": "^0.20.0",
+        "drizzle-kit": "^0.31.10",
+        "tsx": "^4.21.0",
         "typescript": "latest",
         "vitest": "^4.0.18"
     }
