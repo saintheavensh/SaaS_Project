@@ -5,7 +5,8 @@
         "dev": "turbo dev",
         "build": "turbo build",
         "lint": "turbo lint",
-        "typecheck": "pnpm tsc --build"
+        "typecheck": "pnpm tsc --build",
+        "db:push": "pnpm --filter @my-saas-app/db db:push"
     },
     "devDependencies": {
         "turbo": "latest"

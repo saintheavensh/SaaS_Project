@@ -10,7 +10,8 @@
         "typecheck": "tsc --build",
         "test": "vitest run --exclude dist",
         "db:generate": "drizzle-kit generate:pg",
-        "db:migrate": "tsx src/migrate.ts"
+        "db:migrate": "tsx src/migrate.ts",
+        "db:push": "drizzle-kit push:pg"
     },
     "dependencies": {
         "@my-saas-app/types": "workspace:^",
