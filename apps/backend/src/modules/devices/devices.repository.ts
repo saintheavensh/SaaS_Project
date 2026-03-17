@@ -74,13 +74,13 @@ export class DevicesRepository extends TenantRepository {
   /**
    * Find a device by brand and model for the current tenant
    */
-  async findByBrandAndModel(brand: string, model: string): Promise<Device | null> {
+  async findByBrandAndModel(brandId: string, model: string): Promise<Device | null> {
     const [result] = await this.db
       .select()
       .from(devices)
       .where(
         and(
-          eq(devices.brand, brand),
+          eq(devices.brandId, brandId),
           eq(devices.model, model),
           eq(devices.tenantId, this.tenantId)
         )

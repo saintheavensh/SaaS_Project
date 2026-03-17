@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Zod schema for creating a device
  */
 export const CreateDeviceSchema = z.object({
-  brand: z.string().min(1, 'Brand is required'),
+  brandId: z.string().uuid('Invalid brand ID format'),
   series: z.string().optional().nullable(),
   model: z.string().min(1, 'Model is required'),
   code: z.string().optional().nullable(),

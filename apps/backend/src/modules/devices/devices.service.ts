@@ -25,10 +25,10 @@ export class DevicesService {
    * Create a new device with unique validation
    */
   async createDevice(data: CreateDeviceInput): Promise<Device> {
-    // Unique validation per brand + model
-    const existing = await this.repository.findByBrandAndModel(data.brand, data.model);
+    // Unique validation per brandId + model
+    const existing = await this.repository.findByBrandAndModel(data.brandId, data.model);
     if (existing) {
-      throw new Error(`Device with brand "${data.brand}" and model "${data.model}" already exists.`);
+      throw new Error(`Device with model "${data.model}" already exists for this brand.`);
     }
     return this.repository.create(data);
   }
@@ -37,18 +37,18 @@ export class DevicesService {
    * Update an existing device with unique validation
    */
   async updateDevice(id: string, data: UpdateDeviceInput): Promise<Device | null> {
-    // If brand or model is being updated, check for conflicts
-    if (data.brand || data.model) {
+    // If brandId or model is being updated, check for conflicts
+    if (data.brandId || data.model) {
       const current = await this.repository.findOne(id);
       if (!current) return null;
 
-      const brand = data.brand ?? current.brand;
+      const brandId = data.brandId ?? current.brandId;
       const model = data.model ?? current.model;
 
-      if (brand !== current.brand || model !== current.model) {
-        const existing = await this.repository.findByBrandAndModel(brand, model);
+      if (brandId !== current.brandId || model !== current.model) {
+        const existing = await this.repository.findByBrandAndModel(brandId, model);
         if (existing && existing.id !== id) {
-          throw new Error(`Device with brand "${brand}" and model "${model}" already exists.`);
+          throw new Error(`Device with model "${model}" already exists for this brand.`);
         }
       }
     }

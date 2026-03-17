@@ -1,6 +1,6 @@
 import { eq, and, ilike, or, asc, sql } from 'drizzle-orm';
 import { Database, TenantRepository } from '../../core/database/tenant-repository-base.js';
-import { products, devices, productDeviceCompatibility } from '@my-saas-app/db';
+import { products, devices, productDeviceCompatibility, deviceBrands } from '@my-saas-app/db';
 import { CatalogDevice, CatalogProduct, CatalogDisplay, DeviceSparepartResult, DeviceSearchResult } from './types.js';
 
 /**
@@ -31,12 +31,16 @@ export class CatalogRepository extends TenantRepository {
         const rows = await this.db
             .select({
                 deviceId: devices.id,
-                deviceBrand: devices.brand,
+                deviceBrand: deviceBrands.name,
                 deviceModel: devices.model,
                 productId: products.id,
                 productName: products.name,
             })
             .from(devices)
+            .innerJoin(
+                deviceBrands,
+                eq(devices.brandId, deviceBrands.id)
+            )
             .leftJoin(
                 productDeviceCompatibility,
                 eq(productDeviceCompatibility.deviceId, devices.id)
@@ -90,29 +94,33 @@ export class CatalogRepository extends TenantRepository {
         return this.db
             .select({
                 id: devices.id,
-                brand: devices.brand,
+                brand: deviceBrands.name,
                 model: devices.model,
                 series: devices.series,
                 rank: sql<number>`
                     CASE
                         WHEN ${devices.model} ILIKE ${trimmedQuery} THEN 1
                         WHEN ${devices.model} ILIKE ${prefixPattern} THEN 2
-                        WHEN ${devices.brand} ILIKE ${prefixPattern} THEN 3
+                        WHEN ${deviceBrands.name} ILIKE ${prefixPattern} THEN 3
                         ELSE 4
                     END
                 `.as('search_rank')
             })
             .from(devices)
+            .innerJoin(
+                deviceBrands,
+                eq(devices.brandId, deviceBrands.id)
+            )
             .where(
                 and(
                     eq(devices.tenantId, this.tenantId),
                     or(
-                        ilike(devices.brand, searchPattern),
+                        ilike(deviceBrands.name, searchPattern),
                         ilike(devices.model, searchPattern)
                     )
                 )
             )
-            .orderBy(asc(sql`search_rank`), asc(devices.brand), asc(devices.model))
+            .orderBy(asc(sql`search_rank`), asc(deviceBrands.name), asc(devices.model))
             .limit(10);
     }
 
@@ -125,7 +133,7 @@ export class CatalogRepository extends TenantRepository {
                 productId: products.id,
                 productName: products.name,
                 deviceId: devices.id,
-                deviceBrand: devices.brand,
+                deviceBrand: deviceBrands.name,
                 deviceModel: devices.model,
                 deviceSeries: devices.series
             })
@@ -137,6 +145,10 @@ export class CatalogRepository extends TenantRepository {
             .innerJoin(
                 devices, 
                 eq(productDeviceCompatibility.deviceId, devices.id)
+            )
+            .innerJoin(
+                deviceBrands,
+                eq(devices.brandId, deviceBrands.id)
             )
             .where(
                 and(
