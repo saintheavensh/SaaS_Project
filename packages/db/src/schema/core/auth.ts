@@ -24,13 +24,22 @@ export const roles = pgTable('roles', {
 });
 
 export const rolePermissions = pgTable('role_permissions', {
-    roleId: uuid('role_id').references(() => roles.id).notNull(),
-    permissionId: uuid('permission_id').references(() => permissions.id).notNull(),
+    // ✅ FIX: tambahkan tenantId
+    tenantId: uuid('tenant_id')
+        .references(() => tenants.id)
+        .notNull(),
+
+    roleId: uuid('role_id')
+        .references(() => roles.id)
+        .notNull(),
+
+    permissionId: uuid('permission_id')
+        .references(() => permissions.id)
+        .notNull(),
 }, (table) => {
     return {
         pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
-        roleIdx: index('role_permissions_role_idx').on(table.roleId),
-        permissionIdx: index('role_permissions_permission_idx').on(table.permissionId),
+        tenantIdx: index('role_permissions_tenant_idx').on(table.tenantId),
     };
 });
 
