@@ -19,6 +19,7 @@ export class StockLedgerRepository extends TenantRepository {
         batchId?: string | null | undefined;
         type: 'IN' | 'OUT' | 'ADJUSTMENT';
         quantity: number;
+        buyPrice: string;
         reference?: string | null | undefined;
     }, tx?: any) {
         const client = tx || this.db;
@@ -31,6 +32,7 @@ export class StockLedgerRepository extends TenantRepository {
                 batchId: data.batchId ?? null,
                 type: data.type,
                 quantity: data.quantity,
+                buyPrice: data.buyPrice,
                 reference: data.reference ?? null,
             })
             .returning();
@@ -46,6 +48,7 @@ export class StockLedgerRepository extends TenantRepository {
         productId: string;
         batchId?: string | null | undefined;
         quantity: number;
+        buyPrice: string;
         reference?: string | null | undefined;
     }, tx?: any) {
         if (params.quantity <= 0) {
@@ -55,6 +58,7 @@ export class StockLedgerRepository extends TenantRepository {
             ...params,
             type: 'IN',
             quantity: Math.abs(params.quantity),
+            buyPrice: params.buyPrice,
         }, tx);
     }
 
@@ -67,6 +71,7 @@ export class StockLedgerRepository extends TenantRepository {
         productId: string;
         batchId?: string | null | undefined;
         quantity: number;
+        buyPrice: string;
         reference?: string | null | undefined;
     }, tx?: any) {
         if (params.quantity <= 0) {
@@ -76,6 +81,37 @@ export class StockLedgerRepository extends TenantRepository {
             ...params,
             type: 'OUT',
             quantity: Math.abs(params.quantity),
+            buyPrice: params.buyPrice,
         }, tx);
+    }
+
+    /**
+     * getCOGSByReference
+     * Calculates the total COGS for a specific reference (e.g. saleId).
+     * Logic: sum(quantity * buyPrice) for 'OUT' movements.
+     */
+    async getCOGSByReference(reference: string, tx?: any): Promise<number> {
+        const client = tx || this.db;
+        const { and, eq } = await import('drizzle-orm');
+
+        const movements = await client
+            .select({
+                quantity: stockLedger.quantity,
+                buyPrice: stockLedger.buyPrice,
+            })
+            .from(stockLedger)
+            .where(
+                and(
+                    eq(stockLedger.tenantId, this.tenantId),
+                    eq(stockLedger.type, 'OUT'),
+                    eq(stockLedger.reference, reference)
+                )
+            );
+
+        // Sum in JS for accuracy with string-based prices
+        return movements.reduce((acc: number, move: { quantity: number; buyPrice: string }) => {
+            const price = parseFloat(move.buyPrice || '0');
+            return acc + (move.quantity * price);
+        }, 0);
     }
 }

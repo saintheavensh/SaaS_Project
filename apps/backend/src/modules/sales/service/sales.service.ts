@@ -5,6 +5,8 @@ import { InventoryService } from '../../inventory/service.js';
 import { db } from '../../../core/db.js';
 import { decimalToMinorUnit, minorUnitToDecimal } from '../../../core/utils/currency.js';
 
+import { StockLedgerRepository } from '../../ledger/repository/stock-ledger.repository.js';
+
 /**
  * Service for Sales operations.
  * Handles transactional workflow for creating sales and later inventory deduction.
@@ -13,7 +15,8 @@ export class SalesService {
     constructor(
         private readonly tenantId: string,
         private readonly repository: SalesRepository,
-        private readonly inventoryService: InventoryService
+        private readonly inventoryService: InventoryService,
+        private readonly stockLedgerRepo: StockLedgerRepository
     ) { }
 
     /**
@@ -61,6 +64,15 @@ export class SalesService {
                         sellPrice: item.sellPrice.toString(),
                     }, tx);
                 }
+
+                // Step 4: Calculate total COGS and update sale
+                const totalCogs = await this.stockLedgerRepo.getCOGSByReference(newSale.id, tx);
+                const grossProfit = parseFloat(newSale.revenue) - totalCogs;
+
+                await this.repository.updateSaleFinancials(newSale.id, {
+                    cogs: totalCogs.toString(),
+                    grossProfit: grossProfit.toString(),
+                }, tx);
             });
         } catch (error) {
             console.error('Sale creation failed, transaction rolled back.', error);

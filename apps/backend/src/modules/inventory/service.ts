@@ -45,6 +45,7 @@ export class InventoryService {
                 productId: params.productId,
                 batchId: newBatch.id,
                 quantity: params.quantity,
+                buyPrice: params.buyPrice, // Pass buyPrice for COGS
                 reference: params.reference ?? null,
             }, transaction);
 
@@ -103,6 +104,7 @@ export class InventoryService {
                         productId: params.productId,
                         batchId: batch.id,
                         quantity: consumed,
+                        buyPrice: batch.buyPrice, // Pass batch buyPrice for COGS
                         reference: params.reference ?? null,
                     }, transaction);
 

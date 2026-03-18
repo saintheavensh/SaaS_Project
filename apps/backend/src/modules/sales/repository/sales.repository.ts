@@ -99,4 +99,32 @@ export class SalesRepository extends TenantRepository {
 
         return newSaleItemBatch;
     }
+
+    /**
+     * Update sale financials (COGS and Gross Profit)
+     */
+    async updateSaleFinancials(
+        saleId: string,
+        data: {
+            cogs: string;
+            grossProfit: string;
+        },
+        tx?: Database
+    ) {
+        const client = tx || this.db;
+        const { eq, and } = await import('drizzle-orm');
+
+        await client
+            .update(sales)
+            .set({
+                cogs: data.cogs,
+                grossProfit: data.grossProfit,
+            })
+            .where(
+                and(
+                    eq(sales.id, saleId),
+                    eq(sales.tenantId, this.tenantId)
+                )
+            );
+    }
 }
