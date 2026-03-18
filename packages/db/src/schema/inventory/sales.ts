@@ -2,6 +2,7 @@ import { pgTable, uuid, numeric, text, integer, timestamp, index } from 'drizzle
 import { tenants } from '../core/tenants';
 import { products } from '../catalog/products';
 import { batches } from './batches';
+import { timestamps } from '../core/timestamps';
 
 export const sales = pgTable('sales', {
     id: uuid('id').defaultRandom().primaryKey(),
@@ -12,7 +13,7 @@ export const sales = pgTable('sales', {
     cogs: numeric('cogs').notNull(),
     grossProfit: numeric('gross_profit').notNull(),
     status: text('status').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    ...timestamps(),
 }, (table) => {
     return {
         tenantIdx: index('sales_tenant_idx').on(table.tenantId),
@@ -26,6 +27,7 @@ export const salesItems = pgTable('sales_items', {
     productId: uuid('product_id').references(() => products.id).notNull(),
     quantity: integer('quantity').notNull(),
     sellPrice: numeric('sell_price').notNull(),
+    ...timestamps(),
 }, (table) => {
     return {
         tenantIdx: index('sales_items_tenant_idx').on(table.tenantId),
@@ -42,6 +44,7 @@ export const salesItemBatches = pgTable('sales_item_batches', {
     quantity: integer('quantity').notNull(),
     costPrice: numeric('cost_price').notNull(),
     sellPrice: numeric('sell_price').notNull(),
+    ...timestamps(),
 }, (table) => {
     return {
         tenantIdx: index('sales_item_batches_tenant_idx').on(table.tenantId),
@@ -58,7 +61,7 @@ export const salesSummaries = pgTable('sales_summaries', {
     totalCogs: numeric('total_cogs').default('0').notNull(),
     totalGrossProfit: numeric('total_gross_profit').default('0').notNull(),
     salesCount: integer('sales_count').default(0).notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    ...timestamps(),
 }, (table) => {
     return {
         tenantDateIdx: index('sales_summary_tenant_date_idx').on(table.tenantId, table.entryDate),
