@@ -10,6 +10,11 @@
         "db:generate": "pnpm --filter @my-saas-app/padb db:generate",
         "db:studio": "pnpm --filter @my-saas-app/db db:studio"
     },
+    "pnpm": {
+        "overrides": {
+            "drizzle-orm": "0.45.1"
+        }
+    },
     "devDependencies": {
         "turbo": "latest"
     },

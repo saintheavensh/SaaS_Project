@@ -23,7 +23,7 @@ export class SalesService {
         let finalSaleId: string = '';
 
         try {
-            await db.transaction(async (tx) => {
+            await db.transaction(async (tx: any) => {
                 // Step 3: Compute totalRevenue and gather dry-run FIFO data
                 let totalRevenueCents = 0;
                 let totalCogsCents = 0;

@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const RegisterSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
-    name: z.string().min(2),
+    fullName: z.string().min(2),
 });
 
 /**
@@ -27,7 +27,7 @@ export const AuthResponseSchema = z.object({
         id: z.string(),
         tenantId: z.string(),
         email: z.string(),
-        name: z.string(),
+        fullName: z.string(),
         role: z.string(),
         createdAt: z.string(),
         updatedAt: z.string(),

@@ -16,7 +16,7 @@ export class LedgerService {
      * Emits STOCK_MOVED on success.
      */
     async logStockChange(productId: string, batchId: string, delta: number) {
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: any) => {
             // 1. update batch stock
             const batchUpdated = await this.inventoryRepo.updateBatchStockDelta(batchId, delta, tx);
             if (batchUpdated === 0) {
@@ -25,7 +25,7 @@ export class LedgerService {
 
             // 2. update inventory stock
             const productUpdated = await this.inventoryRepo.updateStockDelta(productId, delta, tx);
-            if (productUpdated.affectedRows === 0) {
+            if ((productUpdated as any).affectedRows === 0) {
                 throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
             }
 
@@ -59,7 +59,7 @@ export class LedgerService {
         const delta = countedStock - systemStock;
 
         if (delta !== 0) {
-            await db.transaction(async (tx) => {
+            await db.transaction(async (tx: any) => {
                 // 1. update batch stock
                 const batchUpdated = await this.inventoryRepo.updateBatchStockDelta(batchId, delta, tx);
                 if (batchUpdated === 0) {
@@ -68,7 +68,7 @@ export class LedgerService {
 
                 // 2. update inventory stock
                 const productUpdated = await this.inventoryRepo.updateStockDelta(productId, delta, tx);
-                if (productUpdated.affectedRows === 0) {
+                if ((productUpdated as any).affectedRows === 0) {
                     throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
                 }
 
@@ -95,5 +95,3 @@ export class LedgerService {
         ledgerEmitter.emit(LedgerEvent.OPNAME_FINALIZED, payload);
     }
 }
-
-
