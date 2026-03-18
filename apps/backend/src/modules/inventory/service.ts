@@ -68,42 +68,49 @@ export class InventoryService {
         productId: string;
         quantity: number;
         reference?: string | null;
-    }, tx?: any) {
+    }, tx?: any): Promise<{ success: boolean }> {
         if (params.quantity <= 0) {
             throw new Error('Quantity must be greater than 0');
         }
 
         const execute = async (transaction: any) => {
-            // 1. Find available batches (FIFO ordering)
+            // 1. Find all available batches (FIFO ordering)
             const availableBatches = await this.inventoryRepo.getFifoBatches(params.productId);
             
-            // 2. Pick only one batch
-            if (availableBatches.length === 0) {
-                throw new InsufficientStockError(`No batches available for product ${params.productId}`);
-            }
-
-            const batch = availableBatches[0];
-
-            // 3. Validate stock is sufficient
-            if (batch.remainingQuantity < params.quantity) {
+            // 2. Early Fail: Check total available stock across all batches
+            const totalAvailable = availableBatches.reduce((acc, b) => acc + b.remainingQuantity, 0);
+            if (totalAvailable < params.quantity) {
                 throw new InsufficientStockError(
-                    `Insufficient stock in batch ${batch.id}. Available: ${batch.remainingQuantity}, Requested: ${params.quantity}`
+                    `Insufficient total stock for product ${params.productId}. Available: ${totalAvailable}, Requested: ${params.quantity}`
                 );
             }
 
-            // 4. Reduce current_stock
-            const newStock = batch.remainingQuantity - params.quantity;
-            await this.inventoryRepo.updateBatchStock(batch.id, newStock, transaction);
+            let remainingToConsume = params.quantity;
 
-            // 5. Record movement in history
-            await this.stockLedgerRepo.recordStockOut({
-                productId: params.productId,
-                batchId: batch.id,
-                quantity: params.quantity,
-                reference: params.reference ?? null,
-            }, transaction);
+            // 3. Consume from batches in order (FIFO)
+            for (const batch of availableBatches) {
+                if (remainingToConsume <= 0) break;
 
-            return { batchId: batch.id, remainingStock: newStock };
+                const consumed = Math.min(batch.remainingQuantity, remainingToConsume);
+                if (consumed > 0) {
+                    const newStock = batch.remainingQuantity - consumed;
+                    
+                    // a) Update batch state
+                    await this.inventoryRepo.updateBatchStock(batch.id, newStock, transaction);
+
+                    // b) Record movement in history for this specific batch
+                    await this.stockLedgerRepo.recordStockOut({
+                        productId: params.productId,
+                        batchId: batch.id,
+                        quantity: consumed,
+                        reference: params.reference ?? null,
+                    }, transaction);
+
+                    remainingToConsume -= consumed;
+                }
+            }
+
+            return { success: true };
         };
 
         return tx ? await execute(tx) : await db.transaction(async (newTx) => await execute(newTx));

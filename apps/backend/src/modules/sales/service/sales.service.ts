@@ -46,28 +46,19 @@ export class SalesService {
 
                 // Step 3: Perform actual deduction
                 for (const item of input.items) {
-                    // Actual stock deduction (Step 3: Single batch alignment)
-                    const result = await this.inventoryService.handleStockOut({
+                    // Actual stock deduction (Step 4: FIFO Sync)
+                    await this.inventoryService.handleStockOut({
                         productId: item.productId,
                         quantity: item.quantity,
                         reference: newSale.id, // Linking back to sale
                     }, tx);
 
                     // Create sale item record
-                    const saleItem = await this.repository.createSaleItem({
+                    await this.repository.createSaleItem({
                         saleId: newSale.id,
                         productId: item.productId,
                         quantity: item.quantity,
                         sellPrice: item.sellPrice.toString(),
-                    }, tx);
-
-                    // Record the consumed batch
-                    await this.repository.createSaleItemBatch({
-                        saleItemId: saleItem.id,
-                        batchId: result.batchId,
-                        quantity: item.quantity,
-                        sellPrice: item.sellPrice.toString(),
-                        buyPrice: '0', // Placeholder
                     }, tx);
                 }
             });
