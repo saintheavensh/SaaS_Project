@@ -1,68 +1,111 @@
 import { InventoryRepository } from './repository.js';
-import { inventoryEmitter, InventoryEvent, InventoryEventPayload } from './events/index.js';
-import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
-import { LedgerRepository } from '../ledger/repository/ledger.repository.js';
+import { StockLedgerRepository } from '../ledger/repository/stock-ledger.repository.js';
 import { db } from '../../core/db.js';
-import { Database } from '../../core/database/tenant-repository-base.js';
+import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
 
 /**
- * Service for Inventory business logic.
+ * InventoryService
+ * Synchronizes stock_ledger (history) with batches (state).
+ * Step 3 — Sync with Batches (MANDATORY MINIMAL)
  */
 export class InventoryService {
     constructor(
         private readonly tenantId: string,
-        private readonly repository: InventoryRepository,
-        private readonly ledgerRepo?: LedgerRepository
+        private readonly inventoryRepo: InventoryRepository,
+        private readonly stockLedgerRepo: StockLedgerRepository
     ) { }
 
     /**
-     * Deduct stock for a specific product
+     * handleStockIn
+     * 1. start transaction
+     * 2. create NEW batch
+     * 3. record stock ledger (type: IN)
+     * 4. commit
      */
-    async deductStock(productId: string, quantity: number, saleId?: string) {
-        throw new Error("FIFO_NOT_IMPLEMENTED_YET");
-    }
-
-    /**
-     * Add stock from a new purchase batch.
-     */
-    async addStockFromPurchase(batchData: {
+    async handleStockIn(params: {
         productId: string;
         buyPrice: string;
-        sellPrice: string;
-        initialStock: number;
-    }) {
-        throw new Error("FIFO_NOT_IMPLEMENTED_YET");
+        quantity: number;
+        reference?: string | null;
+    }, tx?: any) {
+        if (params.quantity <= 0) {
+            throw new Error('Quantity must be greater than 0');
+        }
+
+        const execute = async (transaction: any) => {
+            // 1. Create a new batch for this stock-in
+            const newBatch = await this.inventoryRepo.createBatch({
+                productId: params.productId,
+                buyPrice: params.buyPrice,
+                initialStock: params.quantity,
+            }, transaction);
+
+            // 2. Record movement in history
+            await this.stockLedgerRepo.recordStockIn({
+                productId: params.productId,
+                batchId: newBatch.id,
+                quantity: params.quantity,
+                reference: params.reference ?? null,
+            }, transaction);
+
+            return newBatch;
+        };
+
+        return tx ? await execute(tx) : await db.transaction(async (newTx) => await execute(newTx));
     }
 
     /**
-     * Deduct stock using FIFO batch ordering.
+     * handleStockOut
+     * 1. start transaction (unless tx provided)
+     * 2. fetch available batches (ordered oldest first)
+     * 3. pick ONLY ONE batch
+     * 4. validate stock is sufficient
+     * 5. reduce current_stock
+     * 6. record stock ledger (type: OUT)
+     * 7. commit
      */
-    async deductStockFIFO(productId: string, quantity: number, saleId: string, tx?: any, options?: { dryRun?: boolean }): Promise<BatchDeduction[]> {
-        throw new Error("FIFO_NOT_IMPLEMENTED_YET");
+    async handleStockOut(params: {
+        productId: string;
+        quantity: number;
+        reference?: string | null;
+    }, tx?: any) {
+        if (params.quantity <= 0) {
+            throw new Error('Quantity must be greater than 0');
+        }
+
+        const execute = async (transaction: any) => {
+            // 1. Find available batches (FIFO ordering)
+            const availableBatches = await this.inventoryRepo.getFifoBatches(params.productId);
+            
+            // 2. Pick only one batch
+            if (availableBatches.length === 0) {
+                throw new InsufficientStockError(`No batches available for product ${params.productId}`);
+            }
+
+            const batch = availableBatches[0];
+
+            // 3. Validate stock is sufficient
+            if (batch.remainingQuantity < params.quantity) {
+                throw new InsufficientStockError(
+                    `Insufficient stock in batch ${batch.id}. Available: ${batch.remainingQuantity}, Requested: ${params.quantity}`
+                );
+            }
+
+            // 4. Reduce current_stock
+            const newStock = batch.remainingQuantity - params.quantity;
+            await this.inventoryRepo.updateBatchStock(batch.id, newStock, transaction);
+
+            // 5. Record movement in history
+            await this.stockLedgerRepo.recordStockOut({
+                productId: params.productId,
+                batchId: batch.id,
+                quantity: params.quantity,
+                reference: params.reference ?? null,
+            }, transaction);
+
+            return { batchId: batch.id, remainingStock: newStock };
+        };
+
+        return tx ? await execute(tx) : await db.transaction(async (newTx) => await execute(newTx));
     }
-
-    /**
-     * Finalize an opname session
-     */
-    async finalizeOpnameSession(sessionId: string) {
-        // Logic to finalize opname session would go here.
-        // For now, emitting an event as a placeholder for the audit flow.
-
-        inventoryEmitter.emit(InventoryEvent.OPNAME_FINALIZED, {
-            tenantId: this.tenantId,
-            metadata: { sessionId },
-        });
-
-        return { success: true };
-    }
-}
-
-/**
- * Represents a single batch deduction in a FIFO sale.
- * Used for COGS calculation and audit trail.
- */
-export interface BatchDeduction {
-    batchId: string;
-    quantity: number;
-    buyPrice: string;
 }

@@ -24,82 +24,55 @@ export class SalesService {
 
         try {
             await db.transaction(async (tx: any) => {
-                // Step 3: Compute totalRevenue and gather dry-run FIFO data
+                // Step 1: Compute totalRevenue (COGS calculation deferred/simplified for Step 3)
                 let totalRevenueCents = 0;
-                let totalCogsCents = 0;
-                const itemBatchPreviews: {
-                    item: typeof input.items[0],
-                    batches: Awaited<ReturnType<InventoryService['deductStockFIFO']>>
-                }[] = [];
-
+                
                 for (const item of input.items) {
                     const itemSellPriceCents = decimalToMinorUnit(item.sellPrice);
                     totalRevenueCents += itemSellPriceCents * item.quantity;
-
-                    // Get FIFO preview (dry-run)
-                    const batches = await this.inventoryService.deductStockFIFO(
-                        item.productId,
-                        item.quantity,
-                        'DRY_RUN',
-                        tx,
-                        { dryRun: true }
-                    );
-
-                    let itemCogsCents = 0;
-                    for (const batch of batches) {
-                        const batchBuyPriceCents = decimalToMinorUnit(batch.buyPrice);
-                        itemCogsCents += batch.quantity * batchBuyPriceCents;
-                    }
-                    totalCogsCents += itemCogsCents;
-                    itemBatchPreviews.push({ item, batches });
                 }
 
-                const grossProfitCents = totalRevenueCents - totalCogsCents;
-
-                // Step 4: Create sale record with financials
+                // Step 2: Create sale record
                 const newSale = await this.repository.createSale({
                     customerId: input.customerId ?? null,
                     totalAmount: minorUnitToDecimal(totalRevenueCents),
                     revenue: minorUnitToDecimal(totalRevenueCents),
-                    cogs: minorUnitToDecimal(totalCogsCents),
-                    grossProfit: minorUnitToDecimal(grossProfitCents),
+                    cogs: '0', // Placeholder as per Step 3 limitations (no FIFO/COGS logic)
+                    grossProfit: minorUnitToDecimal(totalRevenueCents), // Placeholder
                     status: 'COMPLETED' as SaleStatus,
                 }, tx);
 
                 finalSaleId = newSale.id;
 
-                // Step 5: Perform actual deduction and create items/batches
-                for (const preview of itemBatchPreviews) {
-                    // a) Actual FIFO deduction
-                    const batches = await this.inventoryService.deductStockFIFO(
-                        preview.item.productId,
-                        preview.item.quantity,
-                        newSale.id,
-                        tx
-                    );
-
-                    // b) Create sale item record
-                    const saleItem = await this.repository.createSaleItem({
-                        saleId: newSale.id,
-                        productId: preview.item.productId,
-                        quantity: preview.item.quantity,
-                        sellPrice: preview.item.sellPrice.toString(),
+                // Step 3: Perform actual deduction
+                for (const item of input.items) {
+                    // Actual stock deduction (Step 3: Single batch alignment)
+                    const result = await this.inventoryService.handleStockOut({
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        reference: newSale.id, // Linking back to sale
                     }, tx);
 
-                    // c) Record each consumed batch
-                    for (const batch of batches) {
-                        await this.repository.createSaleItemBatch({
-                            saleItemId: saleItem.id,
-                            batchId: batch.batchId,
-                            quantity: batch.quantity,
-                            sellPrice: preview.item.sellPrice.toString(),
-                            buyPrice: batch.buyPrice,
-                        }, tx);
-                    }
+                    // Create sale item record
+                    const saleItem = await this.repository.createSaleItem({
+                        saleId: newSale.id,
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        sellPrice: item.sellPrice.toString(),
+                    }, tx);
+
+                    // Record the consumed batch
+                    await this.repository.createSaleItemBatch({
+                        saleItemId: saleItem.id,
+                        batchId: result.batchId,
+                        quantity: item.quantity,
+                        sellPrice: item.sellPrice.toString(),
+                        buyPrice: '0', // Placeholder
+                    }, tx);
                 }
             });
         } catch (error) {
-            console.error('Gross Profit Engine: Sale creation failed, transaction rolled back.', error);
+            console.error('Sale creation failed, transaction rolled back.', error);
             throw error;
         }
 

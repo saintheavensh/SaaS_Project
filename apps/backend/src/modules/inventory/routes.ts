@@ -13,4 +13,4 @@ inventoryRouter.use('*', tenantContextMiddleware);
 
 inventoryRouter.post('/deduct', (c) => controller.deductStock(c));
 inventoryRouter.post('/add', (c) => controller.addStock(c));
-inventoryRouter.post('/opname/finalize', (c) => controller.finalizeOpname(c));
+// inventoryRouter.post('/opname/finalize', (c) => controller.finalizeOpname(c));

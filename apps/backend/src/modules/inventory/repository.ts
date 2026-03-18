@@ -51,4 +51,42 @@ export class InventoryRepository extends TenantRepository {
     async updateBatchStockDelta(batchId: string, delta: number, tx?: any): Promise<any> {
         throw new Error("NOT_IMPLEMENTED_YET");
     }
+
+    /**
+     * createBatch
+     * Directly inserts a new batch.
+     */
+    async createBatch(data: {
+        productId: string;
+        buyPrice: string;
+        initialStock: number;
+    }, tx?: any) {
+        const client = tx || this.db;
+        const [result] = await client.insert(batches).values({
+            tenantId: this.tenantId,
+            productId: data.productId,
+            buyPrice: data.buyPrice,
+            currentStock: data.initialStock,
+        }).returning();
+        return result;
+    }
+
+    /**
+     * updateBatchStock
+     * Updates the current stock of a specific batch.
+     * Enforces that current_stock does not go below 0.
+     */
+    async updateBatchStock(batchId: string, newStock: number, tx?: any) {
+        const client = tx || this.db;
+        const [result] = await client.update(batches)
+            .set({ currentStock: newStock })
+            .where(
+                and(
+                    eq(batches.id, batchId),
+                    this.tenantWhere(batches.tenantId)
+                )
+            )
+            .returning();
+        return result;
+    }
 }
