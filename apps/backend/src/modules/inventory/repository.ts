@@ -40,7 +40,7 @@ export class InventoryRepository extends TenantRepository {
      * updateStockDelta(productId: string, delta: number, tx?: any)
      * [TEMP] Added for compilation only.
      */
-    async updateStockDelta(productId: string, delta: number, tx?: any): Promise<any> {
+    async updateStockDelta(productId: string, delta: number, tx?: Database): Promise<any> {
         throw new Error("NOT_IMPLEMENTED_YET");
     }
 
@@ -48,7 +48,7 @@ export class InventoryRepository extends TenantRepository {
      * updateBatchStockDelta(batchId: string, delta: number, tx?: any)
      * [TEMP] Added for compilation only.
      */
-    async updateBatchStockDelta(batchId: string, delta: number, tx?: any): Promise<any> {
+    async updateBatchStockDelta(batchId: string, delta: number, tx?: Database): Promise<any> {
         throw new Error("NOT_IMPLEMENTED_YET");
     }
 
@@ -60,12 +60,17 @@ export class InventoryRepository extends TenantRepository {
         productId: string;
         buyPrice: string;
         initialStock: number;
-    }, tx?: any) {
+        supplierId: string;
+        sellPrice: string;
+    }, tx?: Database) {
         const client = tx || this.db;
         const [result] = await client.insert(batches).values({
             tenantId: this.tenantId,
             productId: data.productId,
+            supplierId: data.supplierId,
             buyPrice: data.buyPrice,
+            sellPrice: data.sellPrice,
+            initialStock: data.initialStock,
             currentStock: data.initialStock,
         }).returning();
         return result;
@@ -76,7 +81,7 @@ export class InventoryRepository extends TenantRepository {
      * Updates the current stock of a specific batch.
      * Enforces that current_stock does not go below 0.
      */
-    async updateBatchStock(batchId: string, newStock: number, tx?: any) {
+    async updateBatchStock(batchId: string, newStock: number, tx?: Database) {
         const client = tx || this.db;
         const [result] = await client.update(batches)
             .set({ currentStock: newStock })
@@ -88,5 +93,25 @@ export class InventoryRepository extends TenantRepository {
             )
             .returning();
         return result;
+    }
+
+    /**
+     * checkProductExists
+     * Verifies if a product exists for the current tenant.
+     */
+    async checkProductExists(productId: string, tx?: Database): Promise<boolean> {
+        const client = tx || this.db;
+        const [result] = await client
+            .select({ id: products.id })
+            .from(products)
+            .where(
+                and(
+                    eq(products.id, productId),
+                    this.tenantWhere(products.tenantId)
+                )
+            )
+            .limit(1);
+        
+        return !!result;
     }
 }

@@ -2,6 +2,9 @@ import { InventoryRepository } from './repository.js';
 import { StockLedgerRepository } from '../ledger/repository/stock-ledger.repository.js';
 import { db } from '../../core/db.js';
 import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
+import { ValidationError } from '../../core/errors/validation.error.js';
+import { NotFoundError } from '../../core/errors/not-found.error.js';
+import { Database } from '../../core/database/tenant-repository-base.js';
 
 /**
  * InventoryService
@@ -26,18 +29,23 @@ export class InventoryService {
         productId: string;
         buyPrice: string;
         quantity: number;
+        supplierId?: string; // Optional in API to maintain contract
+        sellPrice?: string;  // Optional in API to maintain contract
         reference?: string | null;
-    }, tx?: any) {
-        if (params.quantity <= 0) {
-            throw new Error('Quantity must be greater than 0');
-        }
+    }, tx?: Database) {
+        this.validateQuantity(params.quantity);
 
-        const execute = async (transaction: any) => {
+        const execute = async (transaction: Database) => {
+            await this.validateProductExists(params.productId, transaction);
+
             // 1. Create a new batch for this stock-in
             const newBatch = await this.inventoryRepo.createBatch({
                 productId: params.productId,
                 buyPrice: params.buyPrice,
                 initialStock: params.quantity,
+                // Hardening: Provide placeholders if not supplied, though API should ideally provide them
+                supplierId: params.supplierId ?? '00000000-0000-0000-0000-000000000000',
+                sellPrice: params.sellPrice ?? params.buyPrice, 
             }, transaction);
 
             // 2. Record movement in history
@@ -69,12 +77,12 @@ export class InventoryService {
         productId: string;
         quantity: number;
         reference?: string | null;
-    }, tx?: any): Promise<{ success: boolean }> {
-        if (params.quantity <= 0) {
-            throw new Error('Quantity must be greater than 0');
-        }
+    }, tx?: Database): Promise<{ success: boolean }> {
+        this.validateQuantity(params.quantity);
 
-        const execute = async (transaction: any) => {
+        const execute = async (transaction: Database) => {
+            await this.validateProductExists(params.productId, transaction);
+
             // 1. Find all available batches (FIFO ordering)
             const availableBatches = await this.inventoryRepo.getFifoBatches(params.productId);
             
@@ -115,6 +123,27 @@ export class InventoryService {
             return { success: true };
         };
 
-        return tx ? await execute(tx) : await db.transaction(async (newTx) => await execute(newTx));
+        return tx ? await execute(tx) : await db.transaction(async (newTx) => await execute(newTx as Database));
+    }
+
+    /**
+     * validateQuantity
+     * Standardized validation for quantity.
+     */
+    private validateQuantity(quantity: number) {
+        if (quantity <= 0) {
+            throw new ValidationError('Quantity must be greater than 0');
+        }
+    }
+
+    /**
+     * validateProductExists
+     * Standardized validation for product existence.
+     */
+    private async validateProductExists(productId: string, tx: Database) {
+        const exists = await this.inventoryRepo.checkProductExists(productId, tx);
+        if (!exists) {
+            throw new NotFoundError(`Product ${productId} not found`);
+        }
     }
 }

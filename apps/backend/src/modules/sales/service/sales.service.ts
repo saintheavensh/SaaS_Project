@@ -3,7 +3,9 @@ import { CreateSaleInput } from '../schemas/sales.schemas.js';
 import { SaleStatus } from '../types/sales.types.js';
 import { InventoryService } from '../../inventory/service.js';
 import { db } from '../../../core/db.js';
-import { decimalToMinorUnit, minorUnitToDecimal } from '../../../core/utils/currency.js';
+import { decimalToMinorUnit, minorUnitToDecimal, safeSubtract } from '../../../core/utils/currency.js';
+import { ValidationError } from '../../../core/errors/validation.error.js';
+import { Database } from '../../../core/database/tenant-repository-base.js';
 
 import { StockLedgerRepository } from '../../ledger/repository/stock-ledger.repository.js';
 
@@ -23,11 +25,13 @@ export class SalesService {
      * Creates a sale transaction
      */
     async createSale(input: CreateSaleInput): Promise<string> {
+        this.validateSaleInput(input);
+
         let finalSaleId: string = '';
 
         try {
-            await db.transaction(async (tx: any) => {
-                // Step 1: Compute totalRevenue (COGS calculation deferred/simplified for Step 3)
+            await db.transaction(async (tx: Database) => {
+                // Step 1: Compute totalRevenue in minor units
                 let totalRevenueCents = 0;
                 
                 for (const item of input.items) {
@@ -66,12 +70,12 @@ export class SalesService {
                 }
 
                 // Step 4: Calculate total COGS and update sale
-                const totalCogs = await this.stockLedgerRepo.getCOGSByReference(newSale.id, tx);
-                const grossProfit = parseFloat(newSale.revenue) - totalCogs;
+                const totalCogs = await this.stockLedgerRepo.getCOGSByReference(newSale.id, tx); // Returns string
+                const grossProfit = safeSubtract(newSale.revenue, totalCogs);
 
                 await this.repository.updateSaleFinancials(newSale.id, {
-                    cogs: totalCogs.toString(),
-                    grossProfit: grossProfit.toString(),
+                    cogs: totalCogs,
+                    grossProfit: grossProfit,
                 }, tx);
             });
         } catch (error) {
@@ -80,5 +84,21 @@ export class SalesService {
         }
 
         return finalSaleId;
+    }
+
+    /**
+     * validateSaleInput
+     * Standardized validation for sale input.
+     */
+    private validateSaleInput(input: CreateSaleInput) {
+        if (!input.items || input.items.length === 0) {
+            throw new ValidationError('Sale must contain at least one item');
+        }
+
+        for (const item of input.items) {
+            if (item.quantity <= 0) {
+                throw new ValidationError(`Invalid quantity for product ${item.productId}`);
+            }
+        }
     }
 }

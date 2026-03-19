@@ -1,7 +1,8 @@
-import { pgTable, uuid, numeric, integer, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, numeric, integer, index, check } from 'drizzle-orm/pg-core';
 import { tenants } from '../core/tenants';
 import { products } from '../catalog/products';
 import { timestamps } from '../core/timestamps';
+import { sql } from 'drizzle-orm';
 
 // 🔥 tambahkan ini
 import { suppliers } from '../suppliers';
@@ -37,5 +38,6 @@ export const batches = pgTable('batches', {
         tenantIdx: index('batches_tenant_idx').on(table.tenantId),
         productIdx: index('batches_product_idx').on(table.productId),
         supplierIdx: index('batches_supplier_idx').on(table.supplierId),
+        currentStockCheck: check('batches_current_stock_check', sql`${table.currentStock} >= 0`),
     };
 });

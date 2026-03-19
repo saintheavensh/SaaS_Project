@@ -1,4 +1,5 @@
-import { pgTable, uuid, integer, text, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, integer, text, index, check } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { tenants } from './core/tenants';
 import { products } from './catalog/products';
 import { batches } from './inventory/batches';
@@ -13,11 +14,14 @@ export const stockLedger = pgTable('stock_ledger', {
     productId: uuid('product_id').references(() => products.id).notNull(),
     batchId: uuid('batch_id').references(() => batches.id), // Nullable as per spec
     type: text('type').$type<'IN' | 'OUT' | 'ADJUSTMENT'>().notNull(),
-    quantity: integer('quantity').notNull(), // positive = IN, negative = OUT
-    reference: text('reference'), // Nullable text for linking
+    quantity: integer('quantity').notNull(),
+    buyPrice: text('buy_price').notNull(), // Added in Step 5 for COGS
+    reference: text('reference'),
     ...timestamps(),
 }, (table) => ({
     tenantIdx: index('stock_ledger_tenant_idx').on(table.tenantId),
     productIdx: index('stock_ledger_product_idx').on(table.productId),
+    quantityCheck: check('stock_ledger_quantity_check', sql`${table.quantity} > 0`),
+    typeCheck: check('stock_ledger_type_check', sql`${table.type} IN ('IN', 'OUT', 'ADJUSTMENT')`),
     batchIdx: index('stock_ledger_batch_idx').on(table.batchId),
 }));

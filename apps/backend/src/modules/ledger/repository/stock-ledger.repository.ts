@@ -1,5 +1,6 @@
 import { stockLedger } from '@my-saas-app/db';
 import { Database, TenantRepository } from '../../../core/database/tenant-repository-base.js';
+import { decimalToMinorUnit, minorUnitToDecimal } from '../../../core/utils/currency.js';
 
 /**
  * Repository for Stock Ledger operations.
@@ -21,7 +22,7 @@ export class StockLedgerRepository extends TenantRepository {
         quantity: number;
         buyPrice: string;
         reference?: string | null | undefined;
-    }, tx?: any) {
+    }, tx?: Database) {
         const client = tx || this.db;
         
         const [record] = await client
@@ -50,7 +51,7 @@ export class StockLedgerRepository extends TenantRepository {
         quantity: number;
         buyPrice: string;
         reference?: string | null | undefined;
-    }, tx?: any) {
+    }, tx?: Database) {
         if (params.quantity <= 0) {
             throw new Error('Quantity must be greater than 0');
         }
@@ -73,7 +74,7 @@ export class StockLedgerRepository extends TenantRepository {
         quantity: number;
         buyPrice: string;
         reference?: string | null | undefined;
-    }, tx?: any) {
+    }, tx?: Database) {
         if (params.quantity <= 0) {
             throw new Error('Quantity must be greater than 0');
         }
@@ -88,9 +89,9 @@ export class StockLedgerRepository extends TenantRepository {
     /**
      * getCOGSByReference
      * Calculates the total COGS for a specific reference (e.g. saleId).
-     * Logic: sum(quantity * buyPrice) for 'OUT' movements.
+     * Logic: sum(quantity * buyPrice) in minor units for exact precision.
      */
-    async getCOGSByReference(reference: string, tx?: any): Promise<number> {
+    async getCOGSByReference(reference: string, tx?: Database): Promise<string> {
         const client = tx || this.db;
         const { and, eq } = await import('drizzle-orm');
 
@@ -108,10 +109,12 @@ export class StockLedgerRepository extends TenantRepository {
                 )
             );
 
-        // Sum in JS for accuracy with string-based prices
-        return movements.reduce((acc: number, move: { quantity: number; buyPrice: string }) => {
-            const price = parseFloat(move.buyPrice || '0');
-            return acc + (move.quantity * price);
+        // Sum in minor units to avoid floating point errors
+        const totalCogsMinor = movements.reduce((acc: number, move: { quantity: number; buyPrice: string }) => {
+            const priceMinor = decimalToMinorUnit(move.buyPrice);
+            return acc + (move.quantity * priceMinor);
         }, 0);
+
+        return minorUnitToDecimal(totalCogsMinor);
     }
 }
