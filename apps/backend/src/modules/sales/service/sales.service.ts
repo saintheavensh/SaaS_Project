@@ -9,6 +9,7 @@ import { Database } from '../../../core/database/tenant-repository-base.js';
 
 import { StockLedgerRepository } from '../../ledger/repository/stock-ledger.repository.js';
 import { DiscountService } from '../../marketing/service/discount.service.js';
+import { logger } from '../../../core/logger.js';
 
 /**
  * Service for Sales operations.
@@ -125,7 +126,7 @@ export class SalesService {
                         
                         // NOTE: Selling below cost is allowed but logged for audit purposes.
                         if (item.finalUnitPriceCents < avgCostCents) {
-                            console.warn('[SELL_BELOW_COST]', {
+                            logger.warn('SELL_BELOW_COST', {
                                 productId: item.productId,
                                 saleId: newSale.id,
                                 finalPriceCents: item.finalUnitPriceCents,
