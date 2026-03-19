@@ -32,10 +32,10 @@ export class SalesSummaryRepository extends TenantRepository {
             .onConflictDoUpdate({
                 target: [salesSummaries.tenantId, salesSummaries.entryDate],
                 set: {
-                    totalRevenue: data.totalRevenue,
-                    totalCogs: data.totalCogs,
-                    totalGrossProfit: data.totalGrossProfit,
-                    salesCount: data.salesCount,
+                    totalRevenue: sql`${salesSummaries.totalRevenue} + ${data.totalRevenue}`,
+                    totalCogs: sql`${salesSummaries.totalCogs} + ${data.totalCogs}`,
+                    totalGrossProfit: sql`${salesSummaries.totalGrossProfit} + ${data.totalGrossProfit}`,
+                    salesCount: sql`${salesSummaries.salesCount} + 1`,
                     updatedAt: new Date(),
                 }
             })

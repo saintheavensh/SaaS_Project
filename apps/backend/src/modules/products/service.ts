@@ -22,7 +22,10 @@ export class ProductsService {
      * Create a new product
      */
     async createProduct(productData: CreateProductInput) {
-        const newProduct = await this.repository.insertProduct(productData);
+        const newProduct = await this.repository.insertProduct({
+            ...productData,
+            tenantId: this.tenantId,
+        });
 
         // Emit ProductCreated event
         const payload: ProductEventPayload = {

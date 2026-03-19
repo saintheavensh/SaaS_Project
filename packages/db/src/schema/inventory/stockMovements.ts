@@ -1,7 +1,8 @@
-import { pgTable, uuid, text, integer, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, index } from 'drizzle-orm/pg-core';
 import { tenants } from '../core/tenants';
 import { products } from '../catalog/products';
 import { batches } from './batches';
+import { timestamps } from '../core/timestamps';
 
 /**
  * Stock Movements table - Append-only ledger scoped by tenant_id
@@ -14,7 +15,7 @@ export const stockMovements = pgTable('stock_movements', {
     movementType: text('movement_type').notNull(), // e.g., PURCHASE, SALE, ADJUSTMENT, OPNAME
     delta: integer('delta').notNull(), // positive = added, negative = removed
     referenceId: uuid('reference_id'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    ...timestamps(),
 }, (table) => {
     return {
         tenantIdx: index('stock_movements_tenant_idx').on(table.tenantId),

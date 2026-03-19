@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const CreateUserSchema = z.object({
     email: z.string().email('Invalid email address'),
     password: z.string().min(8, 'Password must be at least 8 characters long'),
-    name: z.string().min(1, 'Name is required'),
+    fullName: z.string().min(1, 'Full name is required'),
     roleId: z.string().uuid('Invalid Role ID').optional(),
 });
 
@@ -22,7 +22,7 @@ export const UserResponseSchema = z.object({
     id: z.string().uuid(),
     tenantId: z.string().uuid(),
     email: z.string().email(),
-    name: z.string().nullable(),
+    fullName: z.string().nullable(),
     role: z.string(),
     createdAt: z.string(),
     updatedAt: z.string(),

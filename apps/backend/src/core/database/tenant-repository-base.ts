@@ -1,11 +1,11 @@
-import { PgColumn } from 'drizzle-orm/pg-core';
+import { PgColumn, PgTransaction, PgDatabase } from 'drizzle-orm/pg-core';
 import { SQL, eq } from 'drizzle-orm';
 import { db } from '../db.js';
 
 /**
- * Interface representing instances of Drizzle DB connections
+ * Interface representing instances of Drizzle DB connections (Main or Transaction)
  */
-export type Database = typeof db;
+export type Database = typeof db | PgTransaction<any, any, any>;
 
 /**
  * ARCHITECTURE GUARD (STRICT):

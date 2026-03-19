@@ -27,10 +27,13 @@ export class RolePermissionsRepository extends TenantRepository {
     async assignPermission(roleId: string, permissionId: string): Promise<void> {
         await this.verifyOwnership(roleId, permissionId);
 
-        await this.db.insert(rolePermissions).values({
+        const data: typeof rolePermissions.$inferInsert = {
+            tenantId: this.tenantId,
             roleId,
             permissionId,
-        }).onConflictDoNothing();
+        };
+
+        await this.db.insert(rolePermissions).values(data).onConflictDoNothing();
     }
 
     async removePermission(roleId: string, permissionId: string): Promise<void> {

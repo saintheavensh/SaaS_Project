@@ -21,7 +21,7 @@ export class LedgerRepository extends TenantRepository {
         delta: number,
         movementType: 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'OPNAME' = 'ADJUSTMENT',
         referenceId?: string,
-        tx?: Database // Optional Drizzle transaction client
+        tx?: any // Optional Drizzle transaction client (typed as any for compatibility)
     ) {
         const client = tx || this.db;
         

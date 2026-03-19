@@ -46,11 +46,11 @@ export class AuthRepository {
         return newTenant;
     }
 
-    async createUser(tenantId: string, email: string, name: string, passwordHash: string, roleId: string) {
+    async createUser(tenantId: string, email: string, fullName: string, passwordHash: string, roleId: string) {
         const [newUser] = await this.db.insert(users).values({
             tenantId,
             email,
-            name,
+            fullName,
             passwordHash,
             roleId,
         }).returning();

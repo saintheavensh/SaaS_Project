@@ -20,7 +20,7 @@ export class UserRepository extends TenantRepository {
             id: user.id,
             tenantId: user.tenantId,
             email: user.email,
-            name: user.name,
+            fullName: user.fullName,
             role: roleName,
             createdAt: user.createdAt.toISOString(),
             updatedAt: user.updatedAt.toISOString(),
@@ -68,7 +68,7 @@ export class UserRepository extends TenantRepository {
         const [newUser] = await this.db.insert(users).values({
             tenantId: this.tenantId,
             email: input.email,
-            name: input.name,
+            fullName: input.fullName,
             passwordHash,
             roleId,
         }).returning();

@@ -17,6 +17,8 @@ export class SalesRepository extends TenantRepository {
         data: {
             customerId?: string | null;
             totalAmount: string;
+            originalAmount: string;
+            discountAmount: string;
             revenue: string;
             cogs: string;
             grossProfit: string;
@@ -32,6 +34,8 @@ export class SalesRepository extends TenantRepository {
                 tenantId: this.tenantId,
                 customerId: data.customerId ?? null,
                 totalAmount: data.totalAmount,
+                originalAmount: data.originalAmount,
+                discountAmount: data.discountAmount,
                 revenue: data.revenue,
                 cogs: data.cogs,
                 grossProfit: data.grossProfit,
@@ -51,6 +55,8 @@ export class SalesRepository extends TenantRepository {
             productId: string;
             quantity: number;
             sellPrice: string;
+            originalPrice: string;
+            discountAmount: string;
         },
         tx?: Database
     ) {
@@ -64,6 +70,8 @@ export class SalesRepository extends TenantRepository {
                 productId: data.productId,
                 quantity: data.quantity,
                 sellPrice: data.sellPrice,
+                originalPrice: data.originalPrice,
+                discountAmount: data.discountAmount,
             })
             .returning();
 
@@ -98,5 +106,33 @@ export class SalesRepository extends TenantRepository {
             .returning();
 
         return newSaleItemBatch;
+    }
+
+    /**
+     * Update sale financials (COGS and Gross Profit)
+     */
+    async updateSaleFinancials(
+        saleId: string,
+        data: {
+            cogs: string;
+            grossProfit: string;
+        },
+        tx?: Database
+    ) {
+        const client = tx || this.db;
+        const { eq, and } = await import('drizzle-orm');
+
+        await client
+            .update(sales)
+            .set({
+                cogs: data.cogs,
+                grossProfit: data.grossProfit,
+            })
+            .where(
+                and(
+                    eq(sales.id, saleId),
+                    eq(sales.tenantId, this.tenantId)
+                )
+            );
     }
 }

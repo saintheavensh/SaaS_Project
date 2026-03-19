@@ -33,19 +33,10 @@ export class ProductsRepository extends TenantRepository {
     /**
      * Insert a new product
      */
-    async insertProduct(productData: {
-        name: string;
-        description?: string | null | undefined;
-        categoryId?: string | null | undefined;
-    }) {
+    async insertProduct(productData: typeof products.$inferInsert) {
         const [newProduct] = await this.db
             .insert(products)
-            .values({
-                tenantId: this.tenantId,
-                name: productData.name,
-                description: productData.description ?? null,
-                categoryId: productData.categoryId ?? null,
-            })
+            .values(productData)
             .returning();
         
         return newProduct;
@@ -57,7 +48,9 @@ export class ProductsRepository extends TenantRepository {
     async updateProduct(productId: string, updateData: {
         name?: string | undefined;
         description?: string | null | undefined;
-        categoryId?: string | null | undefined;
+        categoryId?: string | undefined;
+        productBrandId?: string | undefined;
+        productTypeId?: string | undefined;
         updatedAt: Date;
     }) {
         const [updatedProduct] = await this.db

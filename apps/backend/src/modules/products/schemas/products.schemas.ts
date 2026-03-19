@@ -6,7 +6,9 @@ import { z } from 'zod';
 export const CreateProductSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     description: z.string().optional(),
-    categoryId: z.string().uuid().optional(),
+    categoryId: z.string().uuid('Invalid Category ID'),
+    productBrandId: z.string().uuid('Invalid Product Brand ID'),
+    productTypeId: z.string().uuid('Invalid Product Type ID'),
 });
 
 /**

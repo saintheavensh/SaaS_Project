@@ -66,7 +66,7 @@ export const updateUserService = async (tenantId: string, id: string, input: Upd
     }
 
     const updateData: any = {
-        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.fullName !== undefined ? { fullName: input.fullName } : {}),
         updatedAt: new Date(),
     };
 

@@ -5,6 +5,12 @@ import { timestamp } from "drizzle-orm/pg-core";
  * Returns createdAt and updatedAt columns.
  */
 export const timestamps = () => ({
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
 });

@@ -17,7 +17,7 @@
         "@my-saas-app/types": "workspace:*",
         "bcryptjs": "^3.0.3",
         "dotenv": "^16.4.0",
-        "drizzle-orm": "^0.30.0",
+        "drizzle-orm": "0.45.1",
         "hono": "^4.0.0",
         "jsonwebtoken": "^9.0.3",
         "swagger-jsdoc": "^6.2.0",

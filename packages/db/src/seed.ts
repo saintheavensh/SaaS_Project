@@ -64,6 +64,7 @@ async function seed() {
         // Super Admin gets all
         for (const p of allPermissions) {
             await db.insert(schema.rolePermissions).values({
+                tenantId: systemTenant.id,
                 roleId: superAdminRole.id,
                 permissionId: p.id
             }).onConflictDoNothing();
@@ -74,6 +75,7 @@ async function seed() {
         for (const p of allPermissions) {
             if (!adminExclusions.includes(p.name)) {
                 await db.insert(schema.rolePermissions).values({
+                    tenantId: systemTenant.id,
                     roleId: adminRole.id,
                     permissionId: p.id
                 }).onConflictDoNothing();
@@ -84,6 +86,7 @@ async function seed() {
         const readOnlyPermissions = allPermissions.filter(p => p.name.endsWith('.read'));
         for (const p of readOnlyPermissions) {
             await db.insert(schema.rolePermissions).values({
+                tenantId: systemTenant.id,
                 roleId: userRole.id,
                 permissionId: p.id
             }).onConflictDoNothing();
@@ -96,12 +99,12 @@ async function seed() {
         await db.insert(schema.users).values({
             tenantId: systemTenant.id,
             email: 'admin@example.com',
-            name: 'System Admin',
+            fullName: 'System Admin',
             passwordHash: hashedPw,
             roleId: superAdminRole.id,
         }).onConflictDoUpdate({
             target: schema.users.email,
-            set: { passwordHash: hashedPw, name: 'System Admin' }
+            set: { passwordHash: hashedPw, fullName: 'System Admin' }
         });
         console.log('✅ Super Admin user initialized');
 
@@ -109,12 +112,12 @@ async function seed() {
         await db.insert(schema.users).values({
             tenantId: tenantT1.id,
             email: 'user@example.com',
-            name: 'Regular User',
+            fullName: 'Regular User',
             passwordHash: hashedPw,
             roleId: userRole.id,
         }).onConflictDoUpdate({
             target: schema.users.email,
-            set: { passwordHash: hashedPw, name: 'Regular User' }
+            set: { passwordHash: hashedPw, fullName: 'Regular User' }
         });
         console.log('✅ Regular User initialized');
 

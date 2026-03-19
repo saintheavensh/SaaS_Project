@@ -27,7 +27,7 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResponse> 
     // In a real flow, you might have a tenant identifier, 
     // but for simple register we create a new tenant.
     const newTenant = await authRepo.createTenant(
-        `${input.name}'s Workspace`,
+        `${input.fullName}'s Workspace`,
         input.email.split('@')[0].toLowerCase() + '-' + Math.random().toString(36).substring(7)
     );
 
@@ -42,7 +42,7 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResponse> 
     const newUser = await authRepo.createUser(
         newTenant.id,
         input.email,
-        input.name,
+        input.fullName,
         passwordHash,
         userRole.id
     );
@@ -62,7 +62,7 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResponse> 
             id: newUser.id,
             tenantId: newUser.tenantId,
             email: newUser.email,
-            name: newUser.name || '',
+            fullName: newUser.fullName || '',
             role: userRole.name,
             createdAt: newUser.createdAt.toISOString(),
             updatedAt: newUser.updatedAt.toISOString(),
@@ -107,7 +107,7 @@ export const loginUser = async (input: LoginInput): Promise<AuthResponse> => {
             id: user.id,
             tenantId: user.tenantId,
             email: user.email,
-            name: user.name || '',
+            fullName: user.fullName || '',
             role: role.name,
             createdAt: user.createdAt.toISOString(),
             updatedAt: user.updatedAt.toISOString(),

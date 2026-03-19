@@ -23,7 +23,7 @@ export class SalesSummaryService {
         const endDate = new Date(date);
         endDate.setHours(23, 59, 59, 999);
 
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: any) => {
             // 1. Calculate live metrics from raw tables
             const metrics = await this.repository.calculateMetrics(startDate, endDate, tx);
 

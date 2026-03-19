@@ -1,251 +1,161 @@
 import { InventoryRepository } from './repository.js';
-import { inventoryEmitter, InventoryEvent, InventoryEventPayload } from './events/index.js';
-import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
-import { LedgerRepository } from '../ledger/repository/ledger.repository.js';
+import { StockLedgerRepository } from '../ledger/repository/stock-ledger.repository.js';
 import { db } from '../../core/db.js';
+import { InsufficientStockError } from '../../core/errors/insufficient-stock.error.js';
+import { ValidationError } from '../../core/errors/validation.error.js';
+import { NotFoundError } from '../../core/errors/not-found.error.js';
 import { Database } from '../../core/database/tenant-repository-base.js';
 
+const SYSTEM_UNKNOWN_SUPPLIER_ID = '00000000-0000-0000-0000-000000000000';
+
+export type ConsumedBatch = {
+    batchId: string;
+    quantity: number;
+    buyPrice: string;
+};
+
 /**
- * Service for Inventory business logic.
+ * InventoryService
+ * Synchronizes stock_ledger (history) with batches (state).
+ * Step 3 — Sync with Batches (MANDATORY MINIMAL)
  */
 export class InventoryService {
     constructor(
         private readonly tenantId: string,
-        private readonly repository: InventoryRepository,
-        private readonly ledgerRepo?: LedgerRepository
+        private readonly inventoryRepo: InventoryRepository,
+        private readonly stockLedgerRepo: StockLedgerRepository
     ) { }
 
     /**
-     * Deduct stock for a specific product
+     * handleStockIn
+     * 1. start transaction
+     * 2. create NEW batch
+     * 3. record stock ledger (type: IN)
+     * 4. commit
      */
-    async deductStock(productId: string, quantity: number, saleId?: string) {
-        // Business logic for deduction
-        let result: Awaited<ReturnType<InventoryRepository['updateStockDelta']>>;
-
-        await db.transaction(async (tx) => {
-            result = await this.repository.updateStockDelta(productId, -quantity, tx);
-
-            if (result.affectedRows === 0) {
-                throw new InsufficientStockError(`Insufficient stock for product ${productId}`);
-            }
-
-            // Record movement in ledger to fix audit leak
-            if (this.ledgerRepo) {
-                // For non-FIFO we don't have a specific batchId, but we must record the product change
-                // We'll use a null batchId for snapshot-only deductions or we could implement batch deduction here too.
-                // However, the rule is to ensure EVERY mutation is recorded.
-                await this.ledgerRepo.recordStockMovement(
-                    productId,
-                    '00000000-0000-0000-0000-000000000000', // Placeholder or Null if allowed
-                    -quantity,
-                    'SALE',
-                    saleId,
-                    tx
-                );
-            }
-        });
-
-        // Emit event
-        const payload: InventoryEventPayload = {
-            tenantId: this.tenantId,
-            productId,
-            delta: -quantity,
-            newStock: result!.newStock,
-        };
-        inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
-
-        return result!;
-    }
-
-    /**
-     * Add stock from a new purchase batch.
-     * All operations are wrapped in a single transaction:
-     *   1. Insert batch
-     *   2. Update product snapshot stock
-     *   3. Record ledger movement
-     * If any step fails, the entire transaction rolls back.
-     */
-    async addStockFromPurchase(batchData: {
+    async handleStockIn(params: {
         productId: string;
         buyPrice: string;
-        sellPrice: string;
-        initialStock: number;
-    }) {
-        let newBatch: Awaited<ReturnType<InventoryRepository['insertBatch']>>;
-        let stockResult: Awaited<ReturnType<InventoryRepository['updateStockDelta']>>;
+        quantity: number;
+        supplierId?: string; // Optional in API to maintain contract
+        sellPrice?: string;  // Optional in API to maintain contract
+        reference?: string | null;
+    }, tx?: Database) {
+        this.validateQuantity(params.quantity);
 
-        await db.transaction(async (tx) => {
-            // 1. Insert Batch
-            newBatch = await this.repository.insertBatch({
-                ...batchData,
-                currentStock: batchData.initialStock,
-            }, tx);
+        const execute = async (transaction: Database) => {
+            await this.validateProductExists(params.productId, transaction);
 
-            // 2. Update Product Stock (Snapshot)
-            stockResult = await this.repository.updateStockDelta(
-                batchData.productId,
-                batchData.initialStock,
-                tx
-            );
+            // 1. Create a new batch for this stock-in
+            const newBatch = await this.inventoryRepo.createBatch({
+                productId: params.productId,
+                buyPrice: params.buyPrice,
+                initialStock: params.quantity,
+                // Hardening: Provide placeholders if not supplied, though API should ideally provide them
+                supplierId: params.supplierId ?? SYSTEM_UNKNOWN_SUPPLIER_ID,
+                sellPrice: params.sellPrice ?? params.buyPrice, 
+            }, transaction);
 
-            if (stockResult.affectedRows === 0) {
-                throw new Error(`InventoryService: Failed to update stock for product ${batchData.productId}`);
-            }
+            // 2. Record movement in history
+            await this.stockLedgerRepo.recordStockIn({
+                productId: params.productId,
+                batchId: newBatch.id,
+                quantity: params.quantity,
+                buyPrice: params.buyPrice, // Pass buyPrice for COGS
+                reference: params.reference ?? null,
+            }, transaction);
 
-            // 3. Record ledger movement inside same transaction
-            if (this.ledgerRepo) {
-                await this.ledgerRepo.recordStockMovement(
-                    batchData.productId,
-                    newBatch!.id,
-                    batchData.initialStock,
-                    'PURCHASE',
-                    undefined,
-                    tx
-                );
-            }
-        });
-
-        // Emit event only after transaction succeeds
-        const payload: InventoryEventPayload = {
-            tenantId: this.tenantId,
-            productId: batchData.productId,
-            delta: batchData.initialStock,
-            newStock: stockResult!.newStock,
-            metadata: { batchId: newBatch!.id },
+            return newBatch;
         };
-        inventoryEmitter.emit(InventoryEvent.STOCK_UPDATED, payload);
 
-        return { batch: newBatch!, productResult: stockResult! };
+        return tx ? await execute(tx) : await db.transaction(async (newTx) => await execute(newTx));
     }
 
     /**
-     * Deduct stock using FIFO batch ordering.
-     * Consumes oldest batches first until the requested quantity is fulfilled.
-     * All operations are fully transactional — if any step fails, everything rolls back.
-     *
-     * Flow per batch:
-     *   1. Determine takeQty = min(batch.currentStock, remainingQty)
-     *   2. Decrease batch stock atomically
-     *   3. Record ledger movement (SALE)
-     *   4. Collect deduction detail for COGS tracking
-     *
-     * After FIFO loop: update product snapshot stock.
+     * handleStockOut
+     * [CRITICAL] 
+     * 1. Requires mandatory transaction (tx)
+     * 2. Fetches available batches with FOR UPDATE locking
+     * 3. Validates stock is sufficient
+     * 4. Deducts stock with defensive check
      */
-    async deductStockFIFO(productId: string, quantity: number, saleId: string, tx?: Database, options?: { dryRun?: boolean }): Promise<BatchDeduction[]> {
-        if (quantity <= 0 || !Number.isInteger(quantity)) {
-            throw new Error('Quantity must be a positive integer');
+    async handleStockOut(params: {
+        productId: string;
+        quantity: number;
+        reference?: string | null;
+    }, tx: Database): Promise<ConsumedBatch[]> {
+        if (!tx) {
+            throw new Error('Transaction (tx) is required for handleStockOut to ensure concurrency safety');
         }
 
-        if (!this.ledgerRepo) {
-            throw new Error('LedgerRepository is required for FIFO deduction');
+        this.validateQuantity(params.quantity);
+        await this.validateProductExists(params.productId, tx);
+
+        // 1. Find all available batches (FIFO ordering + ROW LOCKING)
+        const availableBatches = await this.inventoryRepo.getFifoBatchesForUpdate(params.productId, tx);
+        
+        // 2. Early Fail: Check total available stock across all batches
+        const totalAvailable = availableBatches.reduce((acc, b) => acc + b.remainingQuantity, 0);
+        if (totalAvailable < params.quantity) {
+            throw new InsufficientStockError(
+                `Insufficient total stock for product ${params.productId}. Available: ${totalAvailable}, Requested: ${params.quantity}`
+            );
         }
 
-        const deductions: BatchDeduction[] = [];
-        let finalStock: number | null = null;
+        let remainingToConsume = params.quantity;
+        const consumedBatches: ConsumedBatch[] = [];
 
-        const operation = async (dbTx: Database) => {
-            // 1. Fetch available batches ordered oldest-first
-            const availableBatches = await this.repository.getAvailableBatchesFIFO(productId, dbTx);
+        // 3. Consume from batches in order (FIFO)
+        for (const batch of availableBatches) {
+            if (remainingToConsume <= 0) break;
 
-            let remainingQty = quantity;
+            const consumed = Math.min(batch.remainingQuantity, remainingToConsume);
+            if (consumed > 0) {
+                const newStock = batch.remainingQuantity - consumed;
+                
+                // a) Update batch state (with defensive check)
+                await this.inventoryRepo.updateBatchStock(batch.id, consumed, newStock, tx);
 
-            // 2. FIFO deduction loop
-            for (const batch of availableBatches) {
-                if (remainingQty <= 0) break;
-
-                const takeQty = Math.min(batch.currentStock, remainingQty);
-
-                if (!options?.dryRun) {
-                    // 3. Decrease batch stock atomically
-                    const updated = await this.repository.decreaseBatchStock(batch.id, takeQty, dbTx);
-                    if (!updated) {
-                        // Concurrent modification — skip this batch, try next
-                        continue;
-                    }
-
-                    // 4. Record ledger movement
-                    await this.ledgerRepo!.recordStockMovement(
-                        productId,
-                        batch.id,
-                        -takeQty,
-                        'SALE',
-                        saleId,
-                        dbTx
-                    );
-                }
-
-                // 5. Collect deduction detail
-                deductions.push({
+                // b) Record movement in history for this specific batch
+                await this.stockLedgerRepo.recordStockOut({
+                    productId: params.productId,
                     batchId: batch.id,
-                    quantity: takeQty,
+                    quantity: consumed,
+                    buyPrice: batch.buyPrice, // Pass batch buyPrice for COGS
+                    reference: params.reference ?? null,
+                }, tx);
+
+                consumedBatches.push({
+                    batchId: batch.id,
+                    quantity: consumed,
                     buyPrice: batch.buyPrice,
                 });
 
-                remainingQty -= takeQty;
+                remainingToConsume -= consumed;
             }
-
-            // 6. Guard: if we couldn't fulfill the entire quantity, roll back
-            if (remainingQty > 0) {
-                throw new InsufficientStockError(
-                    `Insufficient stock for product ${productId}. Short by ${remainingQty} units.`
-                );
-            }
-
-            if (!options?.dryRun) {
-                // 7. Update product snapshot stock
-                const stockResult = await this.repository.updateStockDelta(productId, -quantity, dbTx);
-                if (stockResult.affectedRows === 0) {
-                    throw new InsufficientStockError(
-                        `Failed to update snapshot stock for product ${productId}`
-                    );
-                }
-                finalStock = stockResult.newStock;
-            }
-        };
-
-        if (tx) {
-            await operation(tx);
-        } else {
-            await db.transaction(operation);
         }
 
-        if (!options?.dryRun) {
-            // Emit event only after successful commit
-            const payload: InventoryEventPayload = {
-                tenantId: this.tenantId,
-                productId,
-                delta: -quantity,
-                newStock: finalStock,
-                metadata: { saleId, deductions },
-            };
-            inventoryEmitter.emit(InventoryEvent.STOCK_DEDUCTED, payload);
-        }
-
-        return deductions;
+        return consumedBatches;
     }
 
     /**
-     * Finalize an opname session
+     * validateQuantity
+     * Standardized validation for quantity.
      */
-    async finalizeOpnameSession(sessionId: string) {
-        // Logic to finalize opname session would go here.
-        // For now, emitting an event as a placeholder for the audit flow.
-
-        inventoryEmitter.emit(InventoryEvent.OPNAME_FINALIZED, {
-            tenantId: this.tenantId,
-            metadata: { sessionId },
-        });
-
-        return { success: true };
+    private validateQuantity(quantity: number) {
+        if (quantity <= 0) {
+            throw new ValidationError('Quantity must be greater than 0');
+        }
     }
-}
 
-/**
- * Represents a single batch deduction in a FIFO sale.
- * Used for COGS calculation and audit trail.
- */
-export interface BatchDeduction {
-    batchId: string;
-    quantity: number;
-    buyPrice: string;
+    /**
+     * validateProductExists
+     * Standardized validation for product existence.
+     */
+    private async validateProductExists(productId: string, tx: Database) {
+        const exists = await this.inventoryRepo.checkProductExists(productId, tx);
+        if (!exists) {
+            throw new NotFoundError(`Product ${productId} not found`);
+        }
+    }
 }
