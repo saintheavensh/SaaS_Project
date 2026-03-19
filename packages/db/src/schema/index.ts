@@ -13,3 +13,5 @@ export * from "./product_brands";
 export * from "./device_brands";
 export * from "./product_types";
 export * from "./stock_ledger";
+export * from "./core/customers";
+export * from "./marketing/discounts";
