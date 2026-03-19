@@ -1,14 +1,17 @@
 import { pgTable, uuid, numeric, text, integer, timestamp, index } from 'drizzle-orm/pg-core';
 import { tenants } from '../core/tenants';
 import { products } from '../catalog/products';
+import { customers } from '../core/customers';
 import { batches } from './batches';
 import { timestamps } from '../core/timestamps';
 
 export const sales = pgTable('sales', {
     id: uuid('id').defaultRandom().primaryKey(),
     tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
-    customerId: uuid('customer_id'),
-    totalAmount: numeric('total_amount').notNull(),
+    customerId: uuid('customer_id').references(() => customers.id),
+    totalAmount: numeric('total_amount').notNull(), // Final amount paid
+    originalAmount: numeric('original_amount').notNull(), // Before discounts
+    discountAmount: numeric('discount_amount').default('0').notNull(),
     revenue: numeric('revenue').notNull(),
     cogs: numeric('cogs').notNull(),
     grossProfit: numeric('gross_profit').notNull(),
@@ -26,7 +29,9 @@ export const salesItems = pgTable('sales_items', {
     saleId: uuid('sale_id').references(() => sales.id).notNull(),
     productId: uuid('product_id').references(() => products.id).notNull(),
     quantity: integer('quantity').notNull(),
-    sellPrice: numeric('sell_price').notNull(),
+    sellPrice: numeric('sell_price').notNull(), // Final sell price per unit
+    originalPrice: numeric('original_price').notNull(), // Original price per unit
+    discountAmount: numeric('discount_amount').default('0').notNull(), // Total discount for this line item
     ...timestamps(),
 }, (table) => {
     return {
