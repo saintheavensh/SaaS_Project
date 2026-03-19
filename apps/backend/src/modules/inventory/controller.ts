@@ -24,9 +24,11 @@ export class InventoryController {
         const service = new InventoryService(tenantId, repository, stockLedgerRepo);
         
         try {
-            const result = await service.handleStockOut({
-                productId: validated.productId,
-                quantity: validated.quantity,
+            const result = await db.transaction(async (tx) => {
+                return await service.handleStockOut({
+                    productId: validated.productId,
+                    quantity: validated.quantity,
+                }, tx as any);
             });
             
             return c.json({

@@ -1,4 +1,4 @@
-import { eq, and, sql, gt, asc } from 'drizzle-orm';
+import { eq, and, sql, gt, asc, gte } from 'drizzle-orm';
 import { Database, TenantRepository } from '../../core/database/tenant-repository-base.js';
 import { products, batches } from '@my-saas-app/db';
 
@@ -34,6 +34,36 @@ export class InventoryRepository extends TenantRepository {
                 )
             )
             .orderBy(asc(batches.createdAt));
+    }
+
+    /**
+     * getFifoBatchesForUpdate(productId: string, tx: Database)
+     * [CRITICAL] Row-level locking for concurrency safety.
+     * MUST be run inside a transaction.
+     */
+    async getFifoBatchesForUpdate(productId: string, tx: Database) {
+        if (!tx) {
+            throw new Error('Transaction (tx) is required for getFifoBatchesForUpdate');
+        }
+
+        return tx
+            .select({
+                id: batches.id,
+                productId: batches.productId,
+                remainingQuantity: batches.currentStock,
+                buyPrice: batches.buyPrice,
+                createdAt: batches.createdAt,
+            })
+            .from(batches)
+            .where(
+                and(
+                    this.tenantWhere(batches.tenantId),
+                    eq(batches.productId, productId),
+                    gt(batches.currentStock, 0)
+                )
+            )
+            .orderBy(asc(batches.createdAt))
+            .for('update');
     }
 
     /**
@@ -79,19 +109,28 @@ export class InventoryRepository extends TenantRepository {
     /**
      * updateBatchStock
      * Updates the current stock of a specific batch.
-     * Enforces that current_stock does not go below 0.
+     * [DEFENSIVE] Added consumed check to prevent race-condition overwrite.
      */
-    async updateBatchStock(batchId: string, newStock: number, tx?: Database) {
-        const client = tx || this.db;
-        const [result] = await client.update(batches)
+    async updateBatchStock(batchId: string, consumedQuantity: number, newStock: number, tx: Database) {
+        if (!tx) {
+            throw new Error('Transaction (tx) is required for updateBatchStock');
+        }
+
+        const [result] = await tx.update(batches)
             .set({ currentStock: newStock })
             .where(
                 and(
                     eq(batches.id, batchId),
-                    this.tenantWhere(batches.tenantId)
+                    this.tenantWhere(batches.tenantId),
+                    gte(batches.currentStock, consumedQuantity)
                 )
             )
             .returning();
+
+        if (!result) {
+            throw new Error(`Failed to update stock for batch ${batchId}. Stock may have changed.`);
+        }
+
         return result;
     }
 
