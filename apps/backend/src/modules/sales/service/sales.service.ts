@@ -8,6 +8,7 @@ import { ValidationError } from '../../../core/errors/validation.error.js';
 import { Database } from '../../../core/database/tenant-repository-base.js';
 
 import { StockLedgerRepository } from '../../ledger/repository/stock-ledger.repository.js';
+import { DiscountService } from '../../marketing/service/discount.service.js';
 
 /**
  * Service for Sales operations.
@@ -18,7 +19,8 @@ export class SalesService {
         private readonly tenantId: string,
         private readonly repository: SalesRepository,
         private readonly inventoryService: InventoryService,
-        private readonly stockLedgerRepo: StockLedgerRepository
+        private readonly stockLedgerRepo: StockLedgerRepository,
+        private readonly discountService: DiscountService
     ) { }
 
     /**
@@ -31,28 +33,55 @@ export class SalesService {
 
         try {
             await db.transaction(async (tx: Database) => {
-                // Step 1: Compute totalRevenue in minor units
-                let totalRevenueCents = 0;
+                // Step 1: Compute totalRevenue and Discount in minor units
+                let totalOriginalCents = 0;
+                let totalDiscountCents = 0;
                 
+                const itemsWithAudit = [];
+
                 for (const item of input.items) {
-                    const itemSellPriceCents = decimalToMinorUnit(item.sellPrice);
-                    totalRevenueCents += itemSellPriceCents * item.quantity;
+                    const originalPriceCents = decimalToMinorUnit(item.sellPrice); // Price before override/discount
+                    const quantity = item.quantity;
+                    
+                    // a) Calculate automated discount
+                    const { discountAmountCents } = await this.discountService.calculateDiscount(
+                        item.sellPrice.toString(),
+                        quantity,
+                        input.customerId
+                    );
+
+                    const lineItemTotalCents = (originalPriceCents * quantity) - discountAmountCents;
+                    const finalUnitPriceCents = Math.floor(lineItemTotalCents / quantity);
+
+                    totalOriginalCents += originalPriceCents * quantity;
+                    totalDiscountCents += discountAmountCents;
+
+                    itemsWithAudit.push({
+                        ...item,
+                        originalPrice: item.sellPrice,
+                        finalPrice: minorUnitToDecimal(finalUnitPriceCents),
+                        discountAmount: minorUnitToDecimal(discountAmountCents),
+                    });
                 }
 
-                // Step 2: Create sale record
+                const totalFinalCents = totalOriginalCents - totalDiscountCents;
+
+                // Step 2: Create main sale record with audit fields
                 const newSale = await this.repository.createSale({
                     customerId: input.customerId ?? null,
-                    totalAmount: minorUnitToDecimal(totalRevenueCents),
-                    revenue: minorUnitToDecimal(totalRevenueCents),
-                    cogs: '0', // Placeholder as per Step 3 limitations (no FIFO/COGS logic)
-                    grossProfit: minorUnitToDecimal(totalRevenueCents), // Placeholder
+                    totalAmount: minorUnitToDecimal(totalFinalCents),
+                    originalAmount: minorUnitToDecimal(totalOriginalCents),
+                    discountAmount: minorUnitToDecimal(totalDiscountCents),
+                    revenue: minorUnitToDecimal(totalFinalCents), 
+                    cogs: '0', // Placeholder, updated later by StockLedger integration
+                    grossProfit: '0', // Placeholder, updated later
                     status: 'COMPLETED' as SaleStatus,
                 }, tx);
 
                 finalSaleId = newSale.id;
 
                 // Step 3: Perform actual deduction
-                for (const item of input.items) {
+                for (const item of itemsWithAudit) {
                     // Actual stock deduction (Step 4: FIFO Sync)
                     await this.inventoryService.handleStockOut({
                         productId: item.productId,
@@ -60,12 +89,14 @@ export class SalesService {
                         reference: newSale.id, // Linking back to sale
                     }, tx);
 
-                    // Create sale item record
+                    // Create sale item record with full audit
                     await this.repository.createSaleItem({
                         saleId: newSale.id,
                         productId: item.productId,
                         quantity: item.quantity,
-                        sellPrice: item.sellPrice.toString(),
+                        sellPrice: item.finalPrice,
+                        originalPrice: item.originalPrice.toString(),
+                        discountAmount: item.discountAmount,
                     }, tx);
                 }
 

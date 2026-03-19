@@ -17,6 +17,8 @@ export class SalesRepository extends TenantRepository {
         data: {
             customerId?: string | null;
             totalAmount: string;
+            originalAmount: string;
+            discountAmount: string;
             revenue: string;
             cogs: string;
             grossProfit: string;
@@ -32,6 +34,8 @@ export class SalesRepository extends TenantRepository {
                 tenantId: this.tenantId,
                 customerId: data.customerId ?? null,
                 totalAmount: data.totalAmount,
+                originalAmount: data.originalAmount,
+                discountAmount: data.discountAmount,
                 revenue: data.revenue,
                 cogs: data.cogs,
                 grossProfit: data.grossProfit,
@@ -51,6 +55,8 @@ export class SalesRepository extends TenantRepository {
             productId: string;
             quantity: number;
             sellPrice: string;
+            originalPrice: string;
+            discountAmount: string;
         },
         tx?: Database
     ) {
@@ -64,6 +70,8 @@ export class SalesRepository extends TenantRepository {
                 productId: data.productId,
                 quantity: data.quantity,
                 sellPrice: data.sellPrice,
+                originalPrice: data.originalPrice,
+                discountAmount: data.discountAmount,
             })
             .returning();
 
