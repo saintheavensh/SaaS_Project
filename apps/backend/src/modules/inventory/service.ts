@@ -6,6 +6,8 @@ import { ValidationError } from '../../core/errors/validation.error.js';
 import { NotFoundError } from '../../core/errors/not-found.error.js';
 import { Database } from '../../core/database/tenant-repository-base.js';
 
+const SYSTEM_UNKNOWN_SUPPLIER_ID = '00000000-0000-0000-0000-000000000000';
+
 /**
  * InventoryService
  * Synchronizes stock_ledger (history) with batches (state).
@@ -44,7 +46,7 @@ export class InventoryService {
                 buyPrice: params.buyPrice,
                 initialStock: params.quantity,
                 // Hardening: Provide placeholders if not supplied, though API should ideally provide them
-                supplierId: params.supplierId ?? '00000000-0000-0000-0000-000000000000',
+                supplierId: params.supplierId ?? SYSTEM_UNKNOWN_SUPPLIER_ID,
                 sellPrice: params.sellPrice ?? params.buyPrice, 
             }, transaction);
 
