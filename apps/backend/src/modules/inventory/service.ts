@@ -8,6 +8,12 @@ import { Database } from '../../core/database/tenant-repository-base.js';
 
 const SYSTEM_UNKNOWN_SUPPLIER_ID = '00000000-0000-0000-0000-000000000000';
 
+export type ConsumedBatch = {
+    batchId: string;
+    quantity: number;
+    buyPrice: string;
+};
+
 /**
  * InventoryService
  * Synchronizes stock_ledger (history) with batches (state).
@@ -77,7 +83,7 @@ export class InventoryService {
         productId: string;
         quantity: number;
         reference?: string | null;
-    }, tx: Database): Promise<{ success: boolean }> {
+    }, tx: Database): Promise<ConsumedBatch[]> {
         if (!tx) {
             throw new Error('Transaction (tx) is required for handleStockOut to ensure concurrency safety');
         }
@@ -97,6 +103,7 @@ export class InventoryService {
         }
 
         let remainingToConsume = params.quantity;
+        const consumedBatches: ConsumedBatch[] = [];
 
         // 3. Consume from batches in order (FIFO)
         for (const batch of availableBatches) {
@@ -118,11 +125,17 @@ export class InventoryService {
                     reference: params.reference ?? null,
                 }, tx);
 
+                consumedBatches.push({
+                    batchId: batch.id,
+                    quantity: consumed,
+                    buyPrice: batch.buyPrice,
+                });
+
                 remainingToConsume -= consumed;
             }
         }
 
-        return { success: true };
+        return consumedBatches;
     }
 
     /**
