@@ -1,4 +1,4 @@
-import { pgTable, uuid, numeric, text, integer, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, numeric, text, integer, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { tenants } from '../core/tenants';
 import { products } from '../catalog/products';
 import { customers } from '../core/customers';
@@ -69,6 +69,6 @@ export const salesSummaries = pgTable('sales_summaries', {
     ...timestamps(),
 }, (table) => {
     return {
-        tenantDateIdx: index('sales_summary_tenant_date_idx').on(table.tenantId, table.entryDate),
+        tenantDateIdx: uniqueIndex('sales_summary_tenant_date_idx').on(table.tenantId, table.entryDate),
     };
 });

@@ -1,4 +1,5 @@
 import { SalesRepository } from '../repository/sales.repository.js';
+import { SalesSummaryRepository } from '../repository/sales-summary.repository.js';
 import { CreateSaleInput } from '../schemas/sales.schemas.js';
 import { SaleStatus } from '../types/sales.types.js';
 import { InventoryService } from '../../inventory/service.js';
@@ -21,7 +22,8 @@ export class SalesService {
         private readonly repository: SalesRepository,
         private readonly inventoryService: InventoryService,
         private readonly stockLedgerRepo: StockLedgerRepository,
-        private readonly discountService: DiscountService
+        private readonly discountService: DiscountService,
+        private readonly summaryRepo: SalesSummaryRepository
     ) { }
 
     /**
@@ -144,6 +146,18 @@ export class SalesService {
                 await this.repository.updateSaleFinancials(newSale.id, {
                     cogs: totalCogs,
                     grossProfit: grossProfit,
+                }, tx);
+
+                // Step 5: Update Daily Sales Summary Aggregation
+                const entryDate = new Date();
+                entryDate.setUTCHours(0, 0, 0, 0);
+
+                await this.summaryRepo.upsertDailySummary({
+                    entryDate,
+                    totalRevenue: newSale.revenue,
+                    totalCogs: totalCogs,
+                    totalGrossProfit: grossProfit,
+                    salesCount: 1,
                 }, tx);
             });
         } catch (error) {
