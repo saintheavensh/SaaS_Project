@@ -80,17 +80,10 @@ export class SalesService {
 
                 finalSaleId = newSale.id;
 
-                // Step 3: Perform actual deduction
+                // Step 3: Perform actual deduction and batch tracking
                 for (const item of itemsWithAudit) {
-                    // Actual stock deduction (Step 4: FIFO Sync)
-                    await this.inventoryService.handleStockOut({
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        reference: newSale.id, // Linking back to sale
-                    }, tx);
-
-                    // Create sale item record with full audit
-                    await this.repository.createSaleItem({
+                    // a) Create sale item record FIRST (to get saleItemId)
+                    const newSaleItem = await this.repository.createSaleItem({
                         saleId: newSale.id,
                         productId: item.productId,
                         quantity: item.quantity,
@@ -98,6 +91,24 @@ export class SalesService {
                         originalPrice: item.originalPrice.toString(),
                         discountAmount: item.discountAmount,
                     }, tx);
+
+                    // b) Actual stock deduction (returns consumed batches)
+                    const consumedBatches = await this.inventoryService.handleStockOut({
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        reference: newSale.id, // Linking back to sale
+                    }, tx);
+
+                    // c) Record batch-level traceability
+                    for (const batch of consumedBatches) {
+                        await this.repository.createSaleItemBatch({
+                            saleItemId: newSaleItem.id,
+                            batchId: batch.batchId,
+                            quantity: batch.quantity,
+                            sellPrice: item.finalPrice, // Unit price for this line item
+                            buyPrice: batch.buyPrice,   // Cost price from batch
+                        }, tx);
+                    }
                 }
 
                 // Step 4: Calculate total COGS and update sale
