@@ -60,6 +60,7 @@ export class SalesService {
                         ...item,
                         originalPrice: item.sellPrice,
                         finalPrice: minorUnitToDecimal(finalUnitPriceCents),
+                        finalUnitPriceCents, // Store for cost protection check
                         discountAmount: minorUnitToDecimal(discountAmountCents),
                     });
                 }
@@ -108,6 +109,30 @@ export class SalesService {
                             sellPrice: item.finalPrice, // Unit price for this line item
                             buyPrice: batch.buyPrice,   // Cost price from batch
                         }, tx);
+                    }
+
+                    // d) Sell price guard (Soft warning)
+                    let totalCostCents = 0;
+                    let totalQty = 0;
+                    for (const batch of consumedBatches) {
+                        const costPriceCents = decimalToMinorUnit(batch.buyPrice);
+                        totalCostCents += costPriceCents * batch.quantity;
+                        totalQty += batch.quantity;
+                    }
+
+                    if (totalQty > 0) {
+                        const avgCostCents = Math.floor(totalCostCents / totalQty);
+                        
+                        // NOTE: Selling below cost is allowed but logged for audit purposes.
+                        if (item.finalUnitPriceCents < avgCostCents) {
+                            console.warn('[SELL_BELOW_COST]', {
+                                productId: item.productId,
+                                saleId: newSale.id,
+                                finalPriceCents: item.finalUnitPriceCents,
+                                avgCostCents,
+                                quantity: totalQty
+                            });
+                        }
                     }
                 }
 
